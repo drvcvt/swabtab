@@ -1,0 +1,3 @@
+C:/Users/qkeu50/Documents/cpp/tabswitcher/build/CMakeFiles/TabSwitcher.dir
+C:/Users/qkeu50/Documents/cpp/tabswitcher/build/CMakeFiles/ALL_BUILD.dir
+C:/Users/qkeu50/Documents/cpp/tabswitcher/build/CMakeFiles/ZERO_CHECK.dir

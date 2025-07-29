@@ -1,0 +1,10 @@
+^C:\USERS\QKEU50\DOCUMENTS\CPP\TABSWITCHER\BUILD\CMAKEFILES\462159ECB3B9920EC48272A4C670FCC4\GENERATE.STAMP.RULE
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SC:/Users/qkeu50/Documents/cpp/tabswitcher -BC:/Users/qkeu50/Documents/cpp/tabswitcher/build --check-stamp-list CMakeFiles/generate.stamp.list --vs-solution-file C:/Users/qkeu50/Documents/cpp/tabswitcher/build/TabSwitcher.sln
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
