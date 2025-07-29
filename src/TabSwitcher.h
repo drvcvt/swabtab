@@ -68,7 +68,10 @@ private:
     void DrawIcon(HDC hdc, HICON icon, int x, int y);
     void DrawTextString(HDC hdc, const std::wstring& text, int x, int y, int width, COLORREF color);
     
+    void SendWindowSelectionToWintile(const WindowInfo& window);
+    bool IsWintileRunning();
+    
     // Constants
     static constexpr const wchar_t* WINDOW_CLASS_NAME = L"TabSwitcherWindowClass";
     static constexpr const wchar_t* WINDOW_TITLE = L"Tab Switcher";
-}; 
+};   

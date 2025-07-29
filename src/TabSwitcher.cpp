@@ -1,5 +1,6 @@
 #include "TabSwitcher.h"
 #include "Config.h"
+#include "IPC.h"
 #include <windowsx.h>
 #include <dwmapi.h> // Include for DWM functions
 #include <algorithm>
@@ -320,6 +321,8 @@ void TabSwitcher::ActivateSelectedWindow() {
 
         Hide();
         m_windowManager->ActivateWindow(window.hwnd);
+        
+        SendWindowSelectionToWintile(window);
     }
 }
 
@@ -462,4 +465,30 @@ void TabSwitcher::EnsureSelectionIsVisible() {
 
 void TabSwitcher::CenterOnScreen() {
     Utils::CenterWindow(m_hwnd, Config::WINDOW_WIDTH, Config::WINDOW_HEIGHT);
-} 
+}
+
+void TabSwitcher::SendWindowSelectionToWintile(const WindowInfo& window) {
+    if (!IsWintileRunning()) return;
+    
+    HWND wintileWindow = FindWindowW(WINTILE_WINDOW_CLASS, nullptr);
+    if (wintileWindow) {
+        WindowSelectionData data = {};
+        data.selectedWindow = window.hwnd;
+        data.processId = window.processId;
+        wcsncpy_s(data.title, window.title.c_str(), _TRUNCATE);
+        wcsncpy_s(data.className, window.className.c_str(), _TRUNCATE);
+        
+        COPYDATASTRUCT copyData = {};
+        copyData.dwData = WM_SWABTAB_WINDOW_SELECTED;
+        copyData.cbData = sizeof(WindowSelectionData);
+        copyData.lpData = &data;
+        
+        SendMessage(wintileWindow, WM_COPYDATA, 
+                   reinterpret_cast<WPARAM>(m_hwnd), 
+                   reinterpret_cast<LPARAM>(&copyData));
+    }
+}
+
+bool TabSwitcher::IsWintileRunning() {
+    return FindWindowW(WINTILE_WINDOW_CLASS, nullptr) != nullptr;
+}   
