@@ -6,8 +6,16 @@
 #include <vector>
 #include <string>
 #include <memory>
+#include <chrono>
+#include <algorithm>
+#include <dwmapi.h>
+#include <rapidfuzz/fuzz.hpp>
 
 constexpr UINT WM_APP_KEYDOWN = WM_APP + 1;
+
+#include <thread>
+#include <mutex>
+#include <atomic>
 
 class TabSwitcher {
 public:
@@ -24,11 +32,25 @@ private:
     void RegisterWindowClass();
     void UnregisterWindowClass();
     void CenterOnScreen();
+    void RegisterThumbnail(HWND targetHwnd);
+    void UnregisterThumbnail();
     void FilterWindows();
     void EnsureSelectionIsVisible();
+    
+    // Background thread for updating window list
+    void StartWindowUpdater();
+    void StopWindowUpdater();
+    void UpdateWindowsInBackground();
+
+    // Fuzzy matching scoring methods
+    double CalculateRapidFuzzScore(const std::wstring& search, const std::wstring& target);
+    double CalculatePositionScore(const std::wstring& search, const std::wstring& target);
+    double CalculatePrefixScore(const std::wstring& search, const std::wstring& target);
+    double CalculateSequentialScore(const std::wstring& search, const std::wstring& target);
 
     // Window management
     HWND m_hwnd;
+    HTHUMBNAIL m_hThumbnail;
     HINSTANCE m_hInstance;
     bool m_isVisible;
     
@@ -36,6 +58,11 @@ private:
     std::unique_ptr<WindowManager> m_windowManager;
     std::vector<WindowInfo> m_windows;
     std::vector<WindowInfo> m_filteredWindows;
+    
+    // Threading for window updates
+    std::thread m_updateThread;
+    std::mutex m_windowMutex;
+    std::atomic<bool> m_stopThread;
     
     // UI state
     int m_selectedIndex;
@@ -67,7 +94,8 @@ private:
     void DrawWindowItem(HDC hdc, const WindowInfo& window, int index, int y);
     void DrawIcon(HDC hdc, HICON icon, int x, int y);
     void DrawTextString(HDC hdc, const std::wstring& text, int x, int y, int width, COLORREF color);
-    
+    RECT GetItemRect(int index);
+
     // Constants
     static constexpr const wchar_t* WINDOW_CLASS_NAME = L"TabSwitcherWindowClass";
     static constexpr const wchar_t* WINDOW_TITLE = L"Tab Switcher";

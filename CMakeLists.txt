@@ -16,16 +16,32 @@ set(SOURCES
     src/WindowManager.cpp
     src/TabSwitcher.cpp
     src/Utils.cpp
+    src/Config.cpp
 )
 
 set(HEADERS
     src/WindowManager.h
     src/TabSwitcher.h
     src/Utils.h
+    src/Config.h
 )
+
+# Add FetchContent module
+include(FetchContent)
+
+# Download and configure rapidfuzz
+FetchContent_Declare(
+    rapidfuzz
+    GIT_REPOSITORY https://github.com/rapidfuzz/rapidfuzz-cpp.git
+    GIT_TAG v3.3.2 # Using a recent stable tag
+)
+FetchContent_MakeAvailable(rapidfuzz)
 
 # Create executable
 add_executable(${PROJECT_NAME} WIN32 ${SOURCES} ${HEADERS})
+
+# Define NOMINMAX to prevent conflicts with Windows' min/max macros
+target_compile_definitions(${PROJECT_NAME} PRIVATE NOMINMAX)
 
 # Link Windows libraries
 if(WIN32)
@@ -37,6 +53,7 @@ if(WIN32)
         ole32
         comctl32
         dwmapi
+        rapidfuzz::rapidfuzz
     )
 endif()
 
@@ -48,7 +65,7 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
 
 # Compiler specific settings
 if(MSVC)
-    target_compile_options(${PROJECT_NAME} PRIVATE /W4)
+    target_compile_options(${PROJECT_NAME} PRIVATE /W4 /FS)
 else()
     target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -Wpedantic)
 endif() 

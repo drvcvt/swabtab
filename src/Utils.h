@@ -18,8 +18,9 @@ struct WindowInfo {
     bool isVisible;
     bool isMinimized;
     HICON icon;
+    double score = 0.0;
     
-    WindowInfo() : hwnd(nullptr), processId(0), isVisible(false), isMinimized(false), icon(nullptr) {}
+    WindowInfo() : hwnd(nullptr), processId(0), isVisible(false), isMinimized(false), icon(nullptr), score(0.0) {}
 };
 
 // Utility functions
@@ -28,4 +29,6 @@ namespace Utils {
     HICON GetWindowIcon(HWND hwnd);
     void CenterWindow(HWND hwnd, int width, int height);
     bool IsValidWindow(HWND hwnd);
+    UINT StringToVK(const std::string& key);
+    UINT LoadHotkeySetting();
 } 

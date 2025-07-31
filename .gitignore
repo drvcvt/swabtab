@@ -1,0 +1,31 @@
+# C++ / Visual Studio / CMake
+
+# Build output
+[Bb]uild/
+[Dd]ebug/
+[Rr]elease/
+x64/
+*.exe
+*.dll
+*.so
+*.lib
+*.a
+*.obj
+*.pdb
+*.ilk
+*.log
+
+# CMake generated files
+_deps/
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+install_manifest.txt
+compile_commands.json
+
+# Visual Studio
+.vs/
+*.sln.docstates
+*.suo
+*.user
+*.vcxproj.user

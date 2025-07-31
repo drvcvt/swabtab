@@ -1,9 +1,11 @@
 #include "TabSwitcher.h"
+#include "Utils.h"
 #include <windows.h>
 #include <memory>
 
 std::unique_ptr<TabSwitcher> g_switcher;
 HHOOK g_keyboardHook = nullptr;
+UINT g_hotkey = VK_RSHIFT; // Default hotkey
 
 LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
     if (nCode == HC_ACTION) {
@@ -11,7 +13,7 @@ LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
         
         if (wParam == WM_KEYDOWN || wParam == WM_SYSKEYDOWN) {
             // Check for hotkey press to show the switcher
-            if (pkbhs->vkCode == VK_RSHIFT) {
+            if (pkbhs->vkCode == g_hotkey) {
                 if (g_switcher && !g_switcher->IsVisible()) {
                     g_switcher->Show();
                     return 1; // Swallow the key press
@@ -20,14 +22,15 @@ LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
             
             // Pass other key events to the switcher window if it's visible
             if (g_switcher && g_switcher->IsVisible()) {
+                // Use consistent shift detection method
+                bool shiftPressed = (GetAsyncKeyState(VK_LSHIFT) & 0x8000) || (GetAsyncKeyState(VK_RSHIFT) & 0x8000);
+                
                 if (pkbhs->vkCode == VK_TAB) {
-                    bool shiftPressed = (GetKeyState(VK_LSHIFT) & 0x8000) || (GetKeyState(VK_RSHIFT) & 0x8000);
-                    PostMessage(g_switcher->GetHwnd(), WM_APP_KEYDOWN, pkbhs->vkCode, MAKELPARAM(0, shiftPressed));
+                    PostMessage(g_switcher->GetHwnd(), WM_APP_KEYDOWN, pkbhs->vkCode, MAKELPARAM(pkbhs->scanCode, shiftPressed ? 1 : 0));
                     return 1; // Swallow the key press
                 }
 
                 // Forward other key presses to the TabSwitcher window
-                bool shiftPressed = (GetAsyncKeyState(VK_SHIFT) & 0x8000) != 0;
                 LPARAM packedLParam = MAKELPARAM(pkbhs->scanCode, shiftPressed ? 1 : 0);
                 PostMessage(g_switcher->GetHwnd(), WM_APP_KEYDOWN, pkbhs->vkCode, packedLParam);
                 return 1; // Swallow the key press
@@ -39,9 +42,13 @@ LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
 }
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow) {
+    Config::LoadConfig(); // Load all settings from config.ini
+
     UNREFERENCED_PARAMETER(hPrevInstance);
     UNREFERENCED_PARAMETER(lpCmdLine);
     UNREFERENCED_PARAMETER(nCmdShow);
+
+    g_hotkey = Utils::LoadHotkeySetting();
 
     // Use a mutex to ensure only one instance of the application runs
     HANDLE hMutex = CreateMutexW(NULL, TRUE, L"TabSwitcherMutex");
