@@ -99,9 +99,9 @@ WindowInfo WindowManager::CreateWindowInfo(HWND hwnd) {
     // Window state
     info.isVisible = IsWindowVisible(hwnd) != FALSE;
     info.isMinimized = IsIconic(hwnd) != FALSE;
-    
+
     // Get icon
-    info.icon = Utils::GetWindowIcon(hwnd);
+    info.icon = Utils::GetWindowIcon(hwnd, info.destroyIcon);
     
     return info;
 }

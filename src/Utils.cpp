@@ -32,7 +32,9 @@ std::wstring GetProcessName(DWORD processId) {
     return L"";
 }
 
-HICON GetWindowIcon(HWND hwnd) {
+HICON GetWindowIcon(HWND hwnd, bool& destroyIcon) {
+    destroyIcon = false;
+
     // Try to get the icon from the window
     HICON icon = reinterpret_cast<HICON>(SendMessageW(hwnd, WM_GETICON, ICON_SMALL, 0));
     if (!icon) {
@@ -49,7 +51,7 @@ HICON GetWindowIcon(HWND hwnd) {
     if (!icon) {
         DWORD processId;
         GetWindowThreadProcessId(hwnd, &processId);
-        
+
         HANDLE hProcess = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, processId);
         if (hProcess) {
             wchar_t exePath[MAX_PATH];
@@ -58,6 +60,7 @@ HICON GetWindowIcon(HWND hwnd) {
                 SHFILEINFOW fileInfo;
                 if (SHGetFileInfoW(exePath, 0, &fileInfo, sizeof(fileInfo), SHGFI_ICON | SHGFI_SMALLICON)) {
                     icon = fileInfo.hIcon;
+                    destroyIcon = true;
                 }
             }
             CloseHandle(hProcess);
