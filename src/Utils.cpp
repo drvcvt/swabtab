@@ -152,84 +152,84 @@ bool IsValidWindow(HWND hwnd) {
     return true;
 }
 
-UINT StringToVK(const std::string& key) {
-    static const std::map<std::string, UINT> keyMap = {
-        {"LBUTTON", VK_LBUTTON},
-        {"RBUTTON", VK_RBUTTON},
-        {"CANCEL", VK_CANCEL},
-        {"MBUTTON", VK_MBUTTON},
-        {"XBUTTON1", VK_XBUTTON1},
-        {"XBUTTON2", VK_XBUTTON2},
-        {"BACK", VK_BACK},
-        {"TAB", VK_TAB},
-        {"CLEAR", VK_CLEAR},
-        {"RETURN", VK_RETURN},
-        {"SHIFT", VK_SHIFT},
-        {"CONTROL", VK_CONTROL},
-        {"ALT", VK_MENU},
-        {"PAUSE", VK_PAUSE},
-        {"CAPITAL", VK_CAPITAL},
-        {"ESCAPE", VK_ESCAPE},
-        {"SPACE", VK_SPACE},
-        {"PRIOR", VK_PRIOR},
-        {"NEXT", VK_NEXT},
-        {"END", VK_END},
-        {"HOME", VK_HOME},
-        {"LEFT", VK_LEFT},
-        {"UP", VK_UP},
-        {"RIGHT", VK_RIGHT},
-        {"DOWN", VK_DOWN},
-        {"SELECT", VK_SELECT},
-        {"PRINT", VK_PRINT},
-        {"EXECUTE", VK_EXECUTE},
-        {"SNAPSHOT", VK_SNAPSHOT},
-        {"INSERT", VK_INSERT},
-        {"DELETE", VK_DELETE},
-        {"HELP", VK_HELP},
-        {"LWIN", VK_LWIN},
-        {"RWIN", VK_RWIN},
-        {"APPS", VK_APPS},
-        {"SLEEP", VK_SLEEP},
-        {"NUMPAD0", VK_NUMPAD0},
-        {"NUMPAD1", VK_NUMPAD1},
-        {"NUMPAD2", VK_NUMPAD2},
-        {"NUMPAD3", VK_NUMPAD3},
-        {"NUMPAD4", VK_NUMPAD4},
-        {"NUMPAD5", VK_NUMPAD5},
-        {"NUMPAD6", VK_NUMPAD6},
-        {"NUMPAD7", VK_NUMPAD7},
-        {"NUMPAD8", VK_NUMPAD8},
-        {"NUMPAD9", VK_NUMPAD9},
-        {"MULTIPLY", VK_MULTIPLY},
-        {"ADD", VK_ADD},
-        {"SEPARATOR", VK_SEPARATOR},
-        {"SUBTRACT", VK_SUBTRACT},
-        {"DECIMAL", VK_DECIMAL},
-        {"DIVIDE", VK_DIVIDE},
-        {"F1", VK_F1},
-        {"F2", VK_F2},
-        {"F3", VK_F3},
-        {"F4", VK_F4},
-        {"F5", VK_F5},
-        {"F6", VK_F6},
-        {"F7", VK_F7},
-        {"F8", VK_F8},
-        {"F9", VK_F9},
-        {"F10", VK_F10},
-        {"F11", VK_F11},
-        {"F12", VK_F12},
-        {"NUMLOCK", VK_NUMLOCK},
-        {"SCROLL", VK_SCROLL},
-        {"LSHIFT", VK_LSHIFT},
-        {"RSHIFT", VK_RSHIFT},
-        {"LCONTROL", VK_LCONTROL},
-        {"RCONTROL", VK_RCONTROL},
-        {"LMENU", VK_LMENU},
-        {"RMENU", VK_RMENU}
+UINT StringToVK(const std::wstring& key) {
+    static const std::map<std::wstring, UINT> keyMap = {
+        {L"LBUTTON", VK_LBUTTON},
+        {L"RBUTTON", VK_RBUTTON},
+        {L"CANCEL", VK_CANCEL},
+        {L"MBUTTON", VK_MBUTTON},
+        {L"XBUTTON1", VK_XBUTTON1},
+        {L"XBUTTON2", VK_XBUTTON2},
+        {L"BACK", VK_BACK},
+        {L"TAB", VK_TAB},
+        {L"CLEAR", VK_CLEAR},
+        {L"RETURN", VK_RETURN},
+        {L"SHIFT", VK_SHIFT},
+        {L"CONTROL", VK_CONTROL},
+        {L"ALT", VK_MENU},
+        {L"PAUSE", VK_PAUSE},
+        {L"CAPITAL", VK_CAPITAL},
+        {L"ESCAPE", VK_ESCAPE},
+        {L"SPACE", VK_SPACE},
+        {L"PRIOR", VK_PRIOR},
+        {L"NEXT", VK_NEXT},
+        {L"END", VK_END},
+        {L"HOME", VK_HOME},
+        {L"LEFT", VK_LEFT},
+        {L"UP", VK_UP},
+        {L"RIGHT", VK_RIGHT},
+        {L"DOWN", VK_DOWN},
+        {L"SELECT", VK_SELECT},
+        {L"PRINT", VK_PRINT},
+        {L"EXECUTE", VK_EXECUTE},
+        {L"SNAPSHOT", VK_SNAPSHOT},
+        {L"INSERT", VK_INSERT},
+        {L"DELETE", VK_DELETE},
+        {L"HELP", VK_HELP},
+        {L"LWIN", VK_LWIN},
+        {L"RWIN", VK_RWIN},
+        {L"APPS", VK_APPS},
+        {L"SLEEP", VK_SLEEP},
+        {L"NUMPAD0", VK_NUMPAD0},
+        {L"NUMPAD1", VK_NUMPAD1},
+        {L"NUMPAD2", VK_NUMPAD2},
+        {L"NUMPAD3", VK_NUMPAD3},
+        {L"NUMPAD4", VK_NUMPAD4},
+        {L"NUMPAD5", VK_NUMPAD5},
+        {L"NUMPAD6", VK_NUMPAD6},
+        {L"NUMPAD7", VK_NUMPAD7},
+        {L"NUMPAD8", VK_NUMPAD8},
+        {L"NUMPAD9", VK_NUMPAD9},
+        {L"MULTIPLY", VK_MULTIPLY},
+        {L"ADD", VK_ADD},
+        {L"SEPARATOR", VK_SEPARATOR},
+        {L"SUBTRACT", VK_SUBTRACT},
+        {L"DECIMAL", VK_DECIMAL},
+        {L"DIVIDE", VK_DIVIDE},
+        {L"F1", VK_F1},
+        {L"F2", VK_F2},
+        {L"F3", VK_F3},
+        {L"F4", VK_F4},
+        {L"F5", VK_F5},
+        {L"F6", VK_F6},
+        {L"F7", VK_F7},
+        {L"F8", VK_F8},
+        {L"F9", VK_F9},
+        {L"F10", VK_F10},
+        {L"F11", VK_F11},
+        {L"F12", VK_F12},
+        {L"NUMLOCK", VK_NUMLOCK},
+        {L"SCROLL", VK_SCROLL},
+        {L"LSHIFT", VK_LSHIFT},
+        {L"RSHIFT", VK_RSHIFT},
+        {L"LCONTROL", VK_LCONTROL},
+        {L"RCONTROL", VK_RCONTROL},
+        {L"LMENU", VK_LMENU},
+        {L"RMENU", VK_RMENU}
     };
 
-    std::string upperKey = key;
-        std::transform(upperKey.begin(), upperKey.end(), upperKey.begin(), [](unsigned char c) { return static_cast<char>(std::toupper(c)); });
+    std::wstring upperKey = key;
+    std::transform(upperKey.begin(), upperKey.end(), upperKey.begin(), [](wchar_t c) { return static_cast<wchar_t>(std::towupper(c)); });
 
     auto it = keyMap.find(upperKey);
     if (it != keyMap.end()) {
@@ -238,9 +238,9 @@ UINT StringToVK(const std::string& key) {
 
     // For alphanumeric keys
     if (upperKey.length() == 1) {
-        char c = upperKey[0];
-        if ((c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9')) {
-            return VkKeyScanA(c);
+        wchar_t c = upperKey[0];
+        if ((c >= L'A' && c <= L'Z') || (c >= L'0' && c <= L'9')) {
+            return static_cast<UINT>(VkKeyScanW(c));
         }
     }
 
@@ -248,13 +248,13 @@ UINT StringToVK(const std::string& key) {
 }
 
 UINT LoadHotkeySetting() {
-    char exePath[MAX_PATH];
-    GetModuleFileNameA(NULL, exePath, MAX_PATH);
-    std::string::size_type pos = std::string(exePath).find_last_of("\\/");
-    std::string configPath = std::string(exePath).substr(0, pos) + "\\config.ini";
+    wchar_t exePath[MAX_PATH];
+    GetModuleFileNameW(NULL, exePath, MAX_PATH);
+    std::wstring::size_type pos = std::wstring(exePath).find_last_of(L"\\/");
+    std::wstring configPath = std::wstring(exePath).substr(0, pos) + L"\\config.ini";
 
-    char hotkeyStr[50];
-    GetPrivateProfileStringA("Hotkeys", "Activation", "RSHIFT", hotkeyStr, 50, configPath.c_str());
+    wchar_t hotkeyStr[50];
+    GetPrivateProfileStringW(L"Hotkeys", L"Activation", L"RSHIFT", hotkeyStr, 50, configPath.c_str());
 
     UINT vkCode = StringToVK(hotkeyStr);
     if (vkCode == 0) {

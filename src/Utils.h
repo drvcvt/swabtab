@@ -109,6 +109,6 @@ namespace Utils {
     HICON GetWindowIcon(HWND hwnd, bool& destroyIcon);
     void CenterWindow(HWND hwnd, int width, int height);
     bool IsValidWindow(HWND hwnd);
-    UINT StringToVK(const std::string& key);
+    UINT StringToVK(const std::wstring& key);
     UINT LoadHotkeySetting();
 }

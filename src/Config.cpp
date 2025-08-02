@@ -29,10 +29,10 @@ static std::vector<std::wstring> split(const std::wstring& s, wchar_t delimiter)
 }
 
 // Helper to parse color from "R,G,B" string
-static COLORREF parseColor(const std::string& colorStr, COLORREF defaultColor) {
-    std::stringstream ss(colorStr);
+static COLORREF parseColor(const std::wstring& colorStr, COLORREF defaultColor) {
+    std::wstringstream ss(colorStr);
     int r, g, b;
-    char comma;
+    wchar_t comma;
     if (ss >> r >> comma >> g >> comma >> b) {
         return RGB(r, g, b);
     }
@@ -57,47 +57,45 @@ namespace Config {
     std::vector<std::wstring> EXCLUDED_TITLES;
 
     void LoadConfig() {
-        char exePath[MAX_PATH];
-        GetModuleFileNameA(NULL, exePath, MAX_PATH);
-        std::string::size_type pos = std::string(exePath).find_last_of("\\/");
-        std::string configPath = std::string(exePath).substr(0, pos) + "\\config.ini";
+        wchar_t exePath[MAX_PATH];
+        GetModuleFileNameW(NULL, exePath, MAX_PATH);
+        std::wstring::size_type pos = std::wstring(exePath).find_last_of(L"\\/");
+        std::wstring configPath = std::wstring(exePath).substr(0, pos) + L"\\config.ini";
 
         // Appearance settings
-        WINDOW_WIDTH = GetPrivateProfileIntA("Appearance", "WindowWidth", 680, configPath.c_str());
-        WINDOW_HEIGHT = GetPrivateProfileIntA("Appearance", "WindowHeight", 450, configPath.c_str());
-        ITEM_HEIGHT = GetPrivateProfileIntA("Appearance", "ItemHeight", 40, configPath.c_str());
-        PADDING = GetPrivateProfileIntA("Appearance", "Padding", 15, configPath.c_str());
-        ICON_SIZE = GetPrivateProfileIntA("Appearance", "IconSize", 24, configPath.c_str());
+        WINDOW_WIDTH = GetPrivateProfileIntW(L"Appearance", L"WindowWidth", 680, configPath.c_str());
+        WINDOW_HEIGHT = GetPrivateProfileIntW(L"Appearance", L"WindowHeight", 450, configPath.c_str());
+        ITEM_HEIGHT = GetPrivateProfileIntW(L"Appearance", L"ItemHeight", 40, configPath.c_str());
+        PADDING = GetPrivateProfileIntW(L"Appearance", L"Padding", 15, configPath.c_str());
+        ICON_SIZE = GetPrivateProfileIntW(L"Appearance", L"IconSize", 24, configPath.c_str());
 
-        char fontNameStr[100];
-        GetPrivateProfileStringA("Appearance", "FontName", "Segoe UI", fontNameStr, 100, configPath.c_str());
-        int requiredSize = MultiByteToWideChar(CP_UTF8, 0, fontNameStr, -1, NULL, 0);
-        FONT_NAME.resize(requiredSize - 1);
-        MultiByteToWideChar(CP_UTF8, 0, fontNameStr, -1, &FONT_NAME[0], requiredSize);
+        wchar_t fontNameStr[100];
+        GetPrivateProfileStringW(L"Appearance", L"FontName", L"Segoe UI", fontNameStr, 100, configPath.c_str());
+        FONT_NAME = fontNameStr;
 
-        FONT_SIZE = GetPrivateProfileIntA("Appearance", "FontSize", 16, configPath.c_str());
+        FONT_SIZE = GetPrivateProfileIntW(L"Appearance", L"FontSize", 16, configPath.c_str());
 
-        char colorStr[50];
-        GetPrivateProfileStringA("Appearance", "BackgroundColor", "32,32,32", colorStr, 50, configPath.c_str());
+        wchar_t colorStr[50];
+        GetPrivateProfileStringW(L"Appearance", L"BackgroundColor", L"32,32,32", colorStr, 50, configPath.c_str());
         BG_COLOR = parseColor(colorStr, RGB(32, 32, 32));
-        GetPrivateProfileStringA("Appearance", "TextColor", "240,240,240", colorStr, 50, configPath.c_str());
+        GetPrivateProfileStringW(L"Appearance", L"TextColor", L"240,240,240", colorStr, 50, configPath.c_str());
         TEXT_COLOR = parseColor(colorStr, RGB(240, 240, 240));
-        GetPrivateProfileStringA("Appearance", "SelectedColor", "55,55,55", colorStr, 50, configPath.c_str());
+        GetPrivateProfileStringW(L"Appearance", L"SelectedColor", L"55,55,55", colorStr, 50, configPath.c_str());
         SELECTED_COLOR = parseColor(colorStr, RGB(55, 55, 55));
-        GetPrivateProfileStringA("Appearance", "HighlightColor", "0,120,215", colorStr, 50, configPath.c_str());
+        GetPrivateProfileStringW(L"Appearance", L"HighlightColor", L"0,120,215", colorStr, 50, configPath.c_str());
         HIGHLIGHT_COLOR = parseColor(colorStr, RGB(0, 120, 215));
-        GetPrivateProfileStringA("Appearance", "BorderColor", "80,80,80", colorStr, 50, configPath.c_str());
+        GetPrivateProfileStringW(L"Appearance", L"BorderColor", L"80,80,80", colorStr, 50, configPath.c_str());
         BORDER_COLOR = parseColor(colorStr, RGB(80, 80, 80));
 
         // Window Filters
         wchar_t buffer[2048];
-        GetPrivateProfileStringW(L"WindowFilters", L"ExcludeProcessNames", L"", buffer, 2048, std::wstring(configPath.begin(), configPath.end()).c_str());
+        GetPrivateProfileStringW(L"WindowFilters", L"ExcludeProcessNames", L"", buffer, 2048, configPath.c_str());
         EXCLUDED_PROCESSES = split(buffer, L',');
         for (auto& proc : EXCLUDED_PROCESSES) {
             std::transform(proc.begin(), proc.end(), proc.begin(), ::towlower);
         }
 
-        GetPrivateProfileStringW(L"WindowFilters", L"ExcludeTitles", L"", buffer, 2048, std::wstring(configPath.begin(), configPath.end()).c_str());
+        GetPrivateProfileStringW(L"WindowFilters", L"ExcludeTitles", L"", buffer, 2048, configPath.c_str());
         EXCLUDED_TITLES = split(buffer, L',');
         for (auto& title : EXCLUDED_TITLES) {
             std::transform(title.begin(), title.end(), title.begin(), ::towlower);
