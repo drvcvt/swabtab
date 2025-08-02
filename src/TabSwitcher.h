@@ -9,7 +9,6 @@
 #include <chrono>
 #include <algorithm>
 #include <dwmapi.h>
-#include <rapidfuzz/fuzz.hpp>
 
 constexpr UINT WM_APP_KEYDOWN = WM_APP + 1;
 
@@ -25,7 +24,7 @@ public:
     bool Create();
     void Show();
     void Hide();
-    bool IsVisible() const { return m_isVisible; }
+    bool IsVisible() const { return m_isVisible.load(); }
     HWND GetHwnd() const { return m_hwnd; }
 
 private:
@@ -43,7 +42,7 @@ private:
     void UpdateWindowsInBackground();
 
     // Fuzzy matching scoring methods
-    double CalculateRapidFuzzScore(const std::wstring& search, const std::wstring& target);
+    double CalculateFuzzyScore(const std::wstring& search, const std::wstring& target);
     double CalculatePositionScore(const std::wstring& search, const std::wstring& target);
     double CalculatePrefixScore(const std::wstring& search, const std::wstring& target);
     double CalculateSequentialScore(const std::wstring& search, const std::wstring& target);
@@ -52,7 +51,7 @@ private:
     HWND m_hwnd;
     HTHUMBNAIL m_hThumbnail;
     HINSTANCE m_hInstance;
-    bool m_isVisible;
+    std::atomic<bool> m_isVisible{false};
     
     // Window data
     std::unique_ptr<WindowManager> m_windowManager;

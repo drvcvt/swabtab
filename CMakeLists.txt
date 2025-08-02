@@ -26,17 +26,6 @@ set(HEADERS
     src/Config.h
 )
 
-# Add FetchContent module
-include(FetchContent)
-
-# Download and configure rapidfuzz
-FetchContent_Declare(
-    rapidfuzz
-    GIT_REPOSITORY https://github.com/rapidfuzz/rapidfuzz-cpp.git
-    GIT_TAG v3.3.2 # Using a recent stable tag
-)
-FetchContent_MakeAvailable(rapidfuzz)
-
 # Create executable
 add_executable(${PROJECT_NAME} WIN32 ${SOURCES} ${HEADERS})
 
@@ -53,7 +42,6 @@ if(WIN32)
         ole32
         comctl32
         dwmapi
-        rapidfuzz::rapidfuzz
     )
 endif()
 

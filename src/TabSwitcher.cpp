@@ -5,6 +5,8 @@
 #include <windowsx.h>
 #include <dwmapi.h> // Include for DWM functions
 #include <algorithm>
+#include <numeric>
+#include <vector>
 
 
 
@@ -81,7 +83,7 @@ bool TabSwitcher::Create() {
 }
 
 void TabSwitcher::Show() {
-    if (m_isVisible) return;
+    if (m_isVisible.load()) return;
 
     // The window list is now updated in the background.
     // We just need to grab the latest version of it.
@@ -109,15 +111,15 @@ void TabSwitcher::Show() {
     SetForegroundWindow(m_hwnd); // Force it to the foreground
     SetFocus(m_hwnd);
     
-    m_isVisible = true;
+    m_isVisible.store(true);
     InvalidateRect(m_hwnd, nullptr, TRUE);
 }
 
 void TabSwitcher::Hide() {
-    if (!m_isVisible) return;
+    if (!m_isVisible.load()) return;
     UnregisterThumbnail();
     ShowWindow(m_hwnd, SW_HIDE);
-    m_isVisible = false;
+    m_isVisible.store(false);
 }
 
 void TabSwitcher::RegisterWindowClass() {
@@ -384,23 +386,23 @@ void TabSwitcher::FilterWindows() {
             std::transform(process_lower.begin(), process_lower.end(), process_lower.begin(), ::towlower);
 
             // Calculate scores for window title
-            double title_rapidfuzz = CalculateRapidFuzzScore(search_lower, title_lower);
+            double title_fuzzy = CalculateFuzzyScore(search_lower, title_lower);
             double title_position = CalculatePositionScore(search_lower, title_lower);
             double title_prefix = CalculatePrefixScore(search_lower, title_lower);
             double title_sequential = CalculateSequentialScore(search_lower, title_lower);
 
-            double title_score = (title_rapidfuzz * 0.3) + 
+            double title_score = (title_fuzzy * 0.3) +
                                (title_position * 0.2) + 
                                (title_prefix * 0.3) + 
                                (title_sequential * 0.2);
 
             // Calculate scores for process name
-            double process_rapidfuzz = CalculateRapidFuzzScore(search_lower, process_lower);
+            double process_fuzzy = CalculateFuzzyScore(search_lower, process_lower);
             double process_position = CalculatePositionScore(search_lower, process_lower);
             double process_prefix = CalculatePrefixScore(search_lower, process_lower);
             double process_sequential = CalculateSequentialScore(search_lower, process_lower);
 
-            double process_score = (process_rapidfuzz * 0.3) + 
+            double process_score = (process_fuzzy * 0.3) +
                                  (process_position * 0.2) + 
                                  (process_prefix * 0.3) + 
                                  (process_sequential * 0.2);
@@ -660,13 +662,27 @@ void TabSwitcher::UnregisterThumbnail() {
 
 // Improved fuzzy matching scoring methods
 
-double TabSwitcher::CalculateRapidFuzzScore(const std::wstring& search, const std::wstring& target) {
-    // Use token_set_ratio for better matching of individual words
-    double token_set_score = rapidfuzz::fuzz::token_set_ratio(search, target);
-    double partial_score = rapidfuzz::fuzz::partial_ratio(search, target);
-    
-    // Prefer token_set for better word matching, but use partial as backup
-    return std::max(token_set_score, partial_score * 0.8);
+double TabSwitcher::CalculateFuzzyScore(const std::wstring& search, const std::wstring& target) {
+    // Simple Levenshtein distance-based ratio expressed as percentage
+    const size_t m = search.size();
+    const size_t n = target.size();
+    if (m == 0) return n == 0 ? 100.0 : 0.0;
+    if (n == 0) return 0.0;
+
+    std::vector<size_t> prev(n + 1), curr(n + 1);
+    std::iota(prev.begin(), prev.end(), 0);
+    for (size_t i = 0; i < m; ++i) {
+        curr[0] = i + 1;
+        for (size_t j = 0; j < n; ++j) {
+            size_t cost = search[i] == target[j] ? 0 : 1;
+            curr[j + 1] = std::min({ prev[j + 1] + 1, curr[j] + 1, prev[j] + cost });
+        }
+        std::swap(prev, curr);
+    }
+
+    double dist = static_cast<double>(prev[n]);
+    double maxLen = static_cast<double>(std::max(m, n));
+    return (1.0 - dist / maxLen) * 100.0;
 }
 
 double TabSwitcher::CalculatePositionScore(const std::wstring& search, const std::wstring& target) {
@@ -808,7 +824,7 @@ void TabSwitcher::UpdateWindowsInBackground() {
         }
 
         // If the window is visible, refresh the filtered list
-        if (m_isVisible) {
+        if (m_isVisible.load()) {
             PostMessage(m_hwnd, WM_APP + 2, 0, 0); // Custom message to refresh
         }
 
