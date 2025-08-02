@@ -129,9 +129,11 @@ void TabSwitcher::RegisterWindowClass() {
     wc.lpfnWndProc = WindowProc;
     wc.hInstance = m_hInstance;
     wc.hCursor = LoadCursor(nullptr, IDC_ARROW);
-    wc.hbrBackground = CreateSolidBrush(Config::BG_COLOR);
+    HBRUSH backgroundBrush = CreateSolidBrush(Config::BG_COLOR);
+    wc.hbrBackground = backgroundBrush;
     wc.lpszClassName = WINDOW_CLASS_NAME;
     RegisterClassExW(&wc);
+    DeleteObject(backgroundBrush);
 }
 
 void TabSwitcher::UnregisterWindowClass() {
