@@ -25,7 +25,7 @@ public:
     bool Create();
     void Show();
     void Hide();
-    bool IsVisible() const { return m_isVisible; }
+    bool IsVisible() const { return m_isVisible.load(); }
     HWND GetHwnd() const { return m_hwnd; }
 
 private:
@@ -52,7 +52,7 @@ private:
     HWND m_hwnd;
     HTHUMBNAIL m_hThumbnail;
     HINSTANCE m_hInstance;
-    bool m_isVisible;
+    std::atomic<bool> m_isVisible{false};
     
     // Window data
     std::unique_ptr<WindowManager> m_windowManager;

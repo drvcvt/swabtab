@@ -81,7 +81,7 @@ bool TabSwitcher::Create() {
 }
 
 void TabSwitcher::Show() {
-    if (m_isVisible) return;
+    if (m_isVisible.load()) return;
 
     // The window list is now updated in the background.
     // We just need to grab the latest version of it.
@@ -109,15 +109,15 @@ void TabSwitcher::Show() {
     SetForegroundWindow(m_hwnd); // Force it to the foreground
     SetFocus(m_hwnd);
     
-    m_isVisible = true;
+    m_isVisible.store(true);
     InvalidateRect(m_hwnd, nullptr, TRUE);
 }
 
 void TabSwitcher::Hide() {
-    if (!m_isVisible) return;
+    if (!m_isVisible.load()) return;
     UnregisterThumbnail();
     ShowWindow(m_hwnd, SW_HIDE);
-    m_isVisible = false;
+    m_isVisible.store(false);
 }
 
 void TabSwitcher::RegisterWindowClass() {
@@ -808,7 +808,7 @@ void TabSwitcher::UpdateWindowsInBackground() {
         }
 
         // If the window is visible, refresh the filtered list
-        if (m_isVisible) {
+        if (m_isVisible.load()) {
             PostMessage(m_hwnd, WM_APP + 2, 0, 0); // Custom message to refresh
         }
 
