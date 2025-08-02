@@ -31,6 +31,7 @@ add_executable(${PROJECT_NAME} WIN32 ${SOURCES} ${HEADERS})
 
 # Define NOMINMAX to prevent conflicts with Windows' min/max macros
 target_compile_definitions(${PROJECT_NAME} PRIVATE NOMINMAX)
+target_compile_definitions(${PROJECT_NAME} PRIVATE $<$<CONFIG:Debug>:DEBUG>)
 
 # Link Windows libraries
 if(WIN32)
