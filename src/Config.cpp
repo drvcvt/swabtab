@@ -4,6 +4,7 @@
 #include <string>
 #include <sstream>
 #include <algorithm>
+#include <cwctype>
 
 // Helper function to trim from both ends
 static inline std::wstring trim(const std::wstring& s) {
@@ -92,8 +93,14 @@ namespace Config {
         wchar_t buffer[2048];
         GetPrivateProfileStringW(L"WindowFilters", L"ExcludeProcessNames", L"", buffer, 2048, std::wstring(configPath.begin(), configPath.end()).c_str());
         EXCLUDED_PROCESSES = split(buffer, L',');
+        for (auto& proc : EXCLUDED_PROCESSES) {
+            std::transform(proc.begin(), proc.end(), proc.begin(), ::towlower);
+        }
 
         GetPrivateProfileStringW(L"WindowFilters", L"ExcludeTitles", L"", buffer, 2048, std::wstring(configPath.begin(), configPath.end()).c_str());
         EXCLUDED_TITLES = split(buffer, L',');
+        for (auto& title : EXCLUDED_TITLES) {
+            std::transform(title.begin(), title.end(), title.begin(), ::towlower);
+        }
     }
 }

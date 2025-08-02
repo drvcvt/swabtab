@@ -119,7 +119,9 @@ bool IsValidWindow(HWND hwnd) {
     if (!processName.empty()) {
         std::transform(processName.begin(), processName.end(), processName.begin(), ::towlower);
         for (const auto& excludedProc : Config::EXCLUDED_PROCESSES) {
-            if (processName == excludedProc) {
+            std::wstring lowerExcludedProc = excludedProc;
+            std::transform(lowerExcludedProc.begin(), lowerExcludedProc.end(), lowerExcludedProc.begin(), ::towlower);
+            if (processName == lowerExcludedProc) {
                 return false;
             }
         }
@@ -129,7 +131,9 @@ bool IsValidWindow(HWND hwnd) {
         std::wstring lowerTitle = titleStr;
         std::transform(lowerTitle.begin(), lowerTitle.end(), lowerTitle.begin(), ::towlower);
         for (const auto& excludedTitle : Config::EXCLUDED_TITLES) {
-            if (lowerTitle.find(excludedTitle) != std::wstring::npos) {
+            std::wstring lowerExcludedTitle = excludedTitle;
+            std::transform(lowerExcludedTitle.begin(), lowerExcludedTitle.end(), lowerExcludedTitle.begin(), ::towlower);
+            if (lowerTitle.find(lowerExcludedTitle) != std::wstring::npos) {
                 return false;
             }
         }
