@@ -80,6 +80,7 @@ private:
     // Message handlers
     LRESULT HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam);
     void OnPaint();
+    LRESULT OnEraseBkgnd(HDC hdc);
     void OnKeyDown(WPARAM vkCode, bool isShiftPressed);
     void OnChar(WPARAM ch);
     void OnCustomKeyDown(WPARAM vkCode, LPARAM lParam);

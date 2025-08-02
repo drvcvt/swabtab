@@ -131,11 +131,9 @@ void TabSwitcher::RegisterWindowClass() {
     wc.lpfnWndProc = WindowProc;
     wc.hInstance = m_hInstance;
     wc.hCursor = LoadCursor(nullptr, IDC_ARROW);
-    HBRUSH backgroundBrush = CreateSolidBrush(Config::BG_COLOR);
-    wc.hbrBackground = backgroundBrush;
+    wc.hbrBackground = m_backgroundBrush; // Use the member brush
     wc.lpszClassName = WINDOW_CLASS_NAME;
     RegisterClassExW(&wc);
-    DeleteObject(backgroundBrush);
 }
 
 void TabSwitcher::UnregisterWindowClass() {
@@ -165,6 +163,9 @@ LRESULT TabSwitcher::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
         case WM_PAINT:
             OnPaint();
             return 0;
+
+        case WM_ERASEBKGND:
+            return OnEraseBkgnd((HDC)wParam);
 
         case WM_TIMER:
             if (wParam == 1) { // Our caret timer
@@ -281,6 +282,13 @@ void TabSwitcher::OnPaint() {
     HDC hdc = BeginPaint(m_hwnd, &ps);
     DrawWindow(hdc);
     EndPaint(m_hwnd, &ps);
+}
+
+LRESULT TabSwitcher::OnEraseBkgnd(HDC hdc) {
+    RECT clientRect;
+    GetClientRect(m_hwnd, &clientRect);
+    FillRect(hdc, &clientRect, m_backgroundBrush);
+    return 1; // We've handled erasing the background.
 }
 
 void TabSwitcher::OnKeyDown(WPARAM vkCode, bool isShiftPressed) {
