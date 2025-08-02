@@ -1,6 +1,8 @@
 #include "TabSwitcher.h"
-#include <iostream>
 #include <string>
+#ifdef DEBUG
+#include <iostream>
+#endif
 #include "Config.h"
 #include <windowsx.h>
 #include <dwmapi.h> // Include for DWM functions
@@ -301,10 +303,14 @@ void TabSwitcher::OnKeyDown(WPARAM vkCode, bool isShiftPressed) {
 
         case VK_TAB:
             if (isShiftPressed) {
+#ifdef DEBUG
                 std::cout << "Shift+Tab pressed - going backward" << std::endl;
+#endif
                 SelectPrevious();
             } else {
+#ifdef DEBUG
                 std::cout << "Tab pressed - going forward" << std::endl;
+#endif
                 SelectNext();
             }
             break;
@@ -361,10 +367,12 @@ void TabSwitcher::FilterWindows() {
         m_filteredWindows = m_windows;
     } else {
         // For debugging: convert wstring to string for cout
+#ifdef DEBUG
         std::string search_text_str;
         std::transform(m_searchText.begin(), m_searchText.end(), std::back_inserter(search_text_str),
                       [](wchar_t c) { return static_cast<char>(c); });
         std::cout << "Searching for: " << search_text_str << std::endl;
+#endif
 
         // Convert search text to lowercase for case-insensitive matching
         std::wstring search_lower = m_searchText;
@@ -372,13 +380,15 @@ void TabSwitcher::FilterWindows() {
 
         for (const auto& window : m_windows) {
             // For debugging: convert wstring to string for cout
+#ifdef DEBUG
             std::string window_title_str;
             std::transform(window.title.begin(), window.title.end(), std::back_inserter(window_title_str),
                           [](wchar_t c) { return static_cast<char>(c); });
-            
+
             std::string process_name_str;
             std::transform(window.processName.begin(), window.processName.end(), std::back_inserter(process_name_str),
                           [](wchar_t c) { return static_cast<char>(c); });
+#endif
 
             // Convert window title and process name to lowercase for case-insensitive matching
             std::wstring title_lower = window.title;
@@ -417,9 +427,11 @@ void TabSwitcher::FilterWindows() {
                 final_score += 10; // Small bonus for good process name matches
             }
             
-            std::cout << "Window: '" << window_title_str << "' (Process: '" << process_name_str << "')" 
-                      << " | Title Score: " << title_score << " | Process Score: " << process_score 
+#ifdef DEBUG
+            std::cout << "Window: '" << window_title_str << "' (Process: '" << process_name_str << "')"
+                      << " | Title Score: " << title_score << " | Process Score: " << process_score
                       << " | Final: " << final_score << std::endl;
+#endif
 
             // Use a threshold for quality results
             if (final_score > 60) {
