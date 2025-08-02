@@ -9,7 +9,6 @@
 #include <chrono>
 #include <algorithm>
 #include <dwmapi.h>
-#include <rapidfuzz/fuzz.hpp>
 
 constexpr UINT WM_APP_KEYDOWN = WM_APP + 1;
 
@@ -43,7 +42,7 @@ private:
     void UpdateWindowsInBackground();
 
     // Fuzzy matching scoring methods
-    double CalculateRapidFuzzScore(const std::wstring& search, const std::wstring& target);
+    double CalculateFuzzyScore(const std::wstring& search, const std::wstring& target);
     double CalculatePositionScore(const std::wstring& search, const std::wstring& target);
     double CalculatePrefixScore(const std::wstring& search, const std::wstring& target);
     double CalculateSequentialScore(const std::wstring& search, const std::wstring& target);
