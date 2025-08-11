@@ -241,40 +241,35 @@ LRESULT TabSwitcher::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
 
 void TabSwitcher::OnPaint() {
     if (m_filteredWindows.empty() || m_selectedIndex >= m_filteredWindows.size()) {
-        // If there's nothing to show, just paint the default window
-        PAINTSTRUCT ps;
-        HDC hdc = BeginPaint(m_hwnd, &ps);
-        DrawWindow(hdc);
-        EndPaint(m_hwnd, &ps);
-        return;
-    }
+        UnregisterThumbnail();
+    } else {
+        HWND targetHwnd = m_filteredWindows[m_selectedIndex].hwnd;
+        RegisterThumbnail(targetHwnd);
 
-    HWND targetHwnd = m_filteredWindows[m_selectedIndex].hwnd;
-    RegisterThumbnail(targetHwnd);
+        if (m_hThumbnail) {
+            SIZE sourceSize;
+            if (SUCCEEDED(DwmQueryThumbnailSourceSize(m_hThumbnail, &sourceSize))) {
+                RECT clientRect;
+                GetClientRect(m_hwnd, &clientRect);
 
-    if (m_hThumbnail) {
-        SIZE sourceSize;
-        if (SUCCEEDED(DwmQueryThumbnailSourceSize(m_hThumbnail, &sourceSize))) {
-            RECT clientRect;
-            GetClientRect(m_hwnd, &clientRect);
+                float aspectRatio = (float)sourceSize.cy / (float)sourceSize.cx;
+                int previewWidth = 250; // Thumbnail width
+                int previewHeight = (int)(previewWidth * aspectRatio);
 
-            float aspectRatio = (float)sourceSize.cy / (float)sourceSize.cx;
-            int previewWidth = 250; // Thumbnail width
-            int previewHeight = (int)(previewWidth * aspectRatio);
+                RECT destRect = {
+                    clientRect.right + 10, // Position to the right of the main window
+                    (clientRect.bottom - previewHeight) / 2, // Centered vertically
+                    clientRect.right + 10 + previewWidth,
+                    (clientRect.bottom - previewHeight) / 2 + previewHeight
+                };
 
-            RECT destRect = {
-                clientRect.right + 10, // Position to the right of the main window
-                (clientRect.bottom - previewHeight) / 2, // Centered vertically
-                clientRect.right + 10 + previewWidth,
-                (clientRect.bottom - previewHeight) / 2 + previewHeight
-            };
-
-            DWM_THUMBNAIL_PROPERTIES props;
-            props.dwFlags = DWM_TNP_RECTDESTINATION | DWM_TNP_VISIBLE | DWM_TNP_OPACITY;
-            props.rcDestination = destRect;
-            props.fVisible = TRUE;
-            props.opacity = 255;
-            DwmUpdateThumbnailProperties(m_hThumbnail, &props);
+                DWM_THUMBNAIL_PROPERTIES props;
+                props.dwFlags = DWM_TNP_RECTDESTINATION | DWM_TNP_VISIBLE | DWM_TNP_OPACITY;
+                props.rcDestination = destRect;
+                props.fVisible = TRUE;
+                props.opacity = 255;
+                DwmUpdateThumbnailProperties(m_hThumbnail, &props);
+            }
         }
     }
 
@@ -528,7 +523,16 @@ void TabSwitcher::DrawWindow(HDC hdc) {
     DrawSearchBox(hdc);
 
     int y = Config::PADDING + Config::ITEM_HEIGHT; // Start list below search box
-    
+
+    if (m_filteredWindows.empty()) {
+        std::wstring noWindowsText = L"Keine Fenster gefunden";
+        DrawTextString(hdc, noWindowsText, Config::PADDING,
+                       y + (Config::ITEM_HEIGHT - 20) / 2,
+                       clientRect.right - 2 * Config::PADDING, Config::TEXT_COLOR);
+        SelectObject(hdc, oldFont);
+        return;
+    }
+
     int maxVisibleItems = (clientRect.bottom - y) / Config::ITEM_HEIGHT;
 
     for (int i = 0; i < maxVisibleItems; ++i) {
@@ -540,7 +544,7 @@ void TabSwitcher::DrawWindow(HDC hdc) {
         DrawWindowItem(hdc, m_filteredWindows[itemIndex], itemIndex, y);
         y += Config::ITEM_HEIGHT;
     }
-    
+
     SelectObject(hdc, oldFont);
 }
 
