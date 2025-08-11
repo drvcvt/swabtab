@@ -111,4 +111,5 @@ namespace Utils {
     bool IsValidWindow(HWND hwnd);
     UINT StringToVK(const std::wstring& key);
     UINT LoadHotkeySetting();
+    std::wstring RemoveFileExtension(const std::wstring& filename);
 }
