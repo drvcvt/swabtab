@@ -32,6 +32,14 @@ std::wstring GetProcessName(DWORD processId) {
     return L"";
 }
 
+std::wstring RemoveFileExtension(const std::wstring& filename) {
+    size_t pos = filename.find_last_of(L'.');
+    if (pos != std::wstring::npos) {
+        return filename.substr(0, pos);
+    }
+    return filename;
+}
+
 HICON GetWindowIcon(HWND hwnd, bool& destroyIcon) {
     destroyIcon = false;
 

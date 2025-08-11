@@ -46,6 +46,7 @@ private:
     double CalculatePositionScore(const std::wstring& search, const std::wstring& target);
     double CalculatePrefixScore(const std::wstring& search, const std::wstring& target);
     double CalculateSequentialScore(const std::wstring& search, const std::wstring& target);
+    double CalculateSubstringScore(const std::wstring& search, const std::wstring& target);
 
     // Window management
     HWND m_hwnd;

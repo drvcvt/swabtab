@@ -404,28 +404,33 @@ void TabSwitcher::FilterWindows() {
             
             std::wstring process_lower = window.processName;
             std::transform(process_lower.begin(), process_lower.end(), process_lower.begin(), ::towlower);
+            process_lower = Utils::RemoveFileExtension(process_lower);
 
             // Calculate scores for window title
             double title_fuzzy = CalculateFuzzyScore(search_lower, title_lower);
             double title_position = CalculatePositionScore(search_lower, title_lower);
             double title_prefix = CalculatePrefixScore(search_lower, title_lower);
             double title_sequential = CalculateSequentialScore(search_lower, title_lower);
+            double title_substring = CalculateSubstringScore(search_lower, title_lower);
 
-            double title_score = (title_fuzzy * 0.3) +
-                               (title_position * 0.2) + 
-                               (title_prefix * 0.3) + 
-                               (title_sequential * 0.2);
+            double title_score = (title_fuzzy * 0.25) +
+                               (title_position * 0.15) +
+                               (title_prefix * 0.25) +
+                               (title_sequential * 0.15) +
+                               (title_substring * 0.20);
 
             // Calculate scores for process name
             double process_fuzzy = CalculateFuzzyScore(search_lower, process_lower);
             double process_position = CalculatePositionScore(search_lower, process_lower);
             double process_prefix = CalculatePrefixScore(search_lower, process_lower);
             double process_sequential = CalculateSequentialScore(search_lower, process_lower);
+            double process_substring = CalculateSubstringScore(search_lower, process_lower);
 
-            double process_score = (process_fuzzy * 0.3) +
-                                 (process_position * 0.2) + 
-                                 (process_prefix * 0.3) + 
-                                 (process_sequential * 0.2);
+            double process_score = (process_fuzzy * 0.25) +
+                                 (process_position * 0.15) +
+                                 (process_prefix * 0.25) +
+                                 (process_sequential * 0.15) +
+                                 (process_substring * 0.20);
 
             // Take the better score, but give a small bonus if process name matches well
             double final_score = std::max(title_score, process_score);
@@ -820,8 +825,22 @@ double TabSwitcher::CalculateSequentialScore(const std::wstring& search, const s
         // Combined score with extra weight for consecutive matches
         score = (match_ratio * 60.0) + (consecutive_bonus * 40.0);
     }
-    
+
     return score;
+}
+
+double TabSwitcher::CalculateSubstringScore(const std::wstring& search, const std::wstring& target) {
+    if (search.empty() || target.empty()) return 0.0;
+
+    size_t pos = target.find(search);
+    if (pos != std::wstring::npos) {
+        double length_ratio = static_cast<double>(search.length()) / target.length();
+        double base_score = 80.0;
+        double bonus = length_ratio * 20.0;
+        return base_score + bonus;
+    }
+
+    return 0.0;
 }
 
 void TabSwitcher::StartWindowUpdater() {
