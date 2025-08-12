@@ -267,13 +267,14 @@ void TabSwitcher::OnPaint() {
                 GetClientRect(m_hwnd, &clientRect);
 
                 float aspectRatio = (float)sourceSize.cy / (float)sourceSize.cx;
-                int previewWidth = 250; // Thumbnail width
-                int previewHeight = (int)(previewWidth * aspectRatio);
+                int previewWidth = Config::PREVIEW_WIDTH;
+                int previewHeight = static_cast<int>(previewWidth * aspectRatio);
 
+                int previewLeft = clientRect.right - Config::PREVIEW_WIDTH - Config::PADDING;
                 RECT destRect = {
-                    clientRect.right + 10, // Position to the right of the main window
-                    (clientRect.bottom - previewHeight) / 2, // Centered vertically
-                    clientRect.right + 10 + previewWidth,
+                    previewLeft,
+                    (clientRect.bottom - previewHeight) / 2,
+                    previewLeft + previewWidth,
                     (clientRect.bottom - previewHeight) / 2 + previewHeight
                 };
 
@@ -562,6 +563,7 @@ void TabSwitcher::ActivateSelectedWindow() {
 void TabSwitcher::DrawWindow(HDC hdc) {
     RECT clientRect;
     GetClientRect(m_hwnd, &clientRect);
+    int previewLeft = clientRect.right - Config::PREVIEW_WIDTH - Config::PADDING;
     
     // The background is now handled by DWM (Mica/Acrylic), so we don't need to fill it.
     // FillRect(hdc, &clientRect, m_backgroundBrush);
@@ -582,7 +584,7 @@ void TabSwitcher::DrawWindow(HDC hdc) {
         std::wstring message = windowsEmpty ? L"Lade Fenster..." : L"Keine Fenster gefunden";
         DrawTextString(hdc, message, Config::PADDING,
                        y + (Config::ITEM_HEIGHT - 20) / 2,
-                       clientRect.right - 2 * Config::PADDING, Config::TEXT_COLOR);
+                       previewLeft - 2 * Config::PADDING, Config::TEXT_COLOR);
         SelectObject(hdc, oldFont);
         return;
     }
@@ -605,10 +607,11 @@ void TabSwitcher::DrawWindow(HDC hdc) {
 void TabSwitcher::DrawSearchBox(HDC hdc) {
     RECT clientRect;
     GetClientRect(m_hwnd, &clientRect);
+    int previewLeft = clientRect.right - Config::PREVIEW_WIDTH - Config::PADDING;
 
     RECT searchRect = {
         Config::PADDING, Config::PADDING,
-        clientRect.right - Config::PADDING, Config::PADDING + Config::ITEM_HEIGHT
+        previewLeft - Config::PADDING, Config::PADDING + Config::ITEM_HEIGHT
     };
     
     // A more subtle background for the search box
@@ -664,10 +667,11 @@ void TabSwitcher::DrawSearchBox(HDC hdc) {
 void TabSwitcher::DrawWindowItem(HDC hdc, const WindowInfo& window, int index, int y) {
     RECT clientRect;
     GetClientRect(m_hwnd, &clientRect);
-    
+    int previewLeft = clientRect.right - Config::PREVIEW_WIDTH - Config::PADDING;
+
     RECT itemRect = {
         Config::PADDING, y,
-        clientRect.right - Config::PADDING, y + Config::ITEM_HEIGHT
+        previewLeft - Config::PADDING, y + Config::ITEM_HEIGHT
     };
     
     // Draw a custom selection cursor instead of filling the whole item
@@ -730,13 +734,14 @@ void TabSwitcher::EnsureSelectionIsVisible() {
 RECT TabSwitcher::GetItemRect(int index) {
     RECT clientRect;
     GetClientRect(m_hwnd, &clientRect);
+    int previewLeft = clientRect.right - Config::PREVIEW_WIDTH - Config::PADDING;
 
     int relativeIndex = index - m_scrollOffset;
     int y = Config::PADDING + Config::ITEM_HEIGHT + (relativeIndex * Config::ITEM_HEIGHT);
 
     RECT itemRect = {
         Config::PADDING, y,
-        clientRect.right - Config::PADDING, y + Config::ITEM_HEIGHT
+        previewLeft - Config::PADDING, y + Config::ITEM_HEIGHT
     };
     return itemRect;
 }

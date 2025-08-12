@@ -15,6 +15,7 @@ namespace Config {
     extern int ITEM_HEIGHT;
     extern int PADDING;
     extern int ICON_SIZE;
+    extern int PREVIEW_WIDTH;
 
     // Fonts
     extern std::wstring FONT_NAME;
