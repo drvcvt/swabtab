@@ -573,16 +573,33 @@ void TabSwitcher::DrawSearchBox(HDC hdc) {
     int x = searchRect.left + Config::PADDING;
 
     std::wstring displayText = L"Search: " + m_searchText;
-    
-    // Use the primary text color for the search text label
-    DrawTextString(hdc, displayText, x, Config::PADDING + (Config::ITEM_HEIGHT - 20) / 2,
-                   searchRect.right - x - Config::PADDING, Config::TEXT_COLOR);
+
+    // Measure the width of the text to determine if it exceeds the search box
+    SIZE textSize{};
+    GetTextExtentPoint32W(hdc, displayText.c_str(), static_cast<int>(displayText.length()), &textSize);
+
+    int availableWidth = searchRect.right - x - Config::PADDING;
+    int scrollOffset = 0;
+
+    // Scroll horizontally if the text is wider than the available space
+    if (textSize.cx > availableWidth) {
+        scrollOffset = textSize.cx - availableWidth;
+    }
+
+    // Clip text rendering to the search box and apply scroll offset
+    int savedDC = SaveDC(hdc);
+    RECT clipRect = { x, searchRect.top, searchRect.right - Config::PADDING, searchRect.bottom };
+    IntersectClipRect(hdc, clipRect.left, clipRect.top, clipRect.right, clipRect.bottom);
+    SetBkMode(hdc, TRANSPARENT);
+    SetTextColor(hdc, Config::TEXT_COLOR);
+    TextOutW(hdc, x - scrollOffset, Config::PADDING + (Config::ITEM_HEIGHT - 20) / 2,
+             displayText.c_str(), static_cast<int>(displayText.length()));
+    RestoreDC(hdc, savedDC);
 
     // Draw the blinking caret
     if (m_isCaretVisible) {
-        SIZE textSize;
-        GetTextExtentPoint32W(hdc, displayText.c_str(), static_cast<int>(displayText.length()), &textSize);
-        int caretX = x + textSize.cx;
+        int caretX = x + textSize.cx - scrollOffset;
+        caretX = min(caretX, searchRect.right - Config::PADDING);
         int caretY = searchRect.top + (Config::ITEM_HEIGHT - 20) / 2;
         RECT caretRect = { caretX, caretY, caretX + 2, caretY + 20 };
         FillRect(hdc, &caretRect, (HBRUSH)GetStockObject(WHITE_BRUSH));
