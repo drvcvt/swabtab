@@ -84,13 +84,13 @@ bool TabSwitcher::Create() {
 void TabSwitcher::Show() {
     if (m_isVisible.load()) return;
 
-    // The window list is now updated in the background.
-    // We just need to grab the latest version of it.
+    // Update the window list before showing the UI
     {
         std::lock_guard<std::mutex> lock(m_windowMutex);
-        // m_windows is already up-to-date from the background thread.
+        m_windowManager->RefreshWindows();
+        m_windows = m_windowManager->GetAllWindows();
     }
-    
+
     m_searchText.clear();
     FilterWindows();
     
@@ -574,8 +574,13 @@ void TabSwitcher::DrawWindow(HDC hdc) {
     int y = Config::PADDING + Config::ITEM_HEIGHT; // Start list below search box
 
     if (m_filteredWindows.empty()) {
-        std::wstring noWindowsText = L"Keine Fenster gefunden";
-        DrawTextString(hdc, noWindowsText, Config::PADDING,
+        bool windowsEmpty;
+        {
+            std::lock_guard<std::mutex> lock(m_windowMutex);
+            windowsEmpty = m_windows.empty();
+        }
+        std::wstring message = windowsEmpty ? L"Lade Fenster..." : L"Keine Fenster gefunden";
+        DrawTextString(hdc, message, Config::PADDING,
                        y + (Config::ITEM_HEIGHT - 20) / 2,
                        clientRect.right - 2 * Config::PADDING, Config::TEXT_COLOR);
         SelectObject(hdc, oldFont);
