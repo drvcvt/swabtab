@@ -46,6 +46,7 @@ namespace Config {
     int ITEM_HEIGHT = 40;
     int PADDING = 15;
     int ICON_SIZE = 24;
+    int PREVIEW_WIDTH = 250;
     std::wstring FONT_NAME = L"Segoe UI";
     int FONT_SIZE = 16;
     COLORREF BG_COLOR = RGB(32, 32, 32);
@@ -63,11 +64,13 @@ namespace Config {
         std::wstring configPath = std::wstring(exePath).substr(0, pos) + L"\\config.ini";
 
         // Appearance settings
-        WINDOW_WIDTH = GetPrivateProfileIntW(L"Appearance", L"WindowWidth", 680, configPath.c_str());
+        int baseWidth = GetPrivateProfileIntW(L"Appearance", L"WindowWidth", 680, configPath.c_str());
         WINDOW_HEIGHT = GetPrivateProfileIntW(L"Appearance", L"WindowHeight", 450, configPath.c_str());
         ITEM_HEIGHT = GetPrivateProfileIntW(L"Appearance", L"ItemHeight", 40, configPath.c_str());
         PADDING = GetPrivateProfileIntW(L"Appearance", L"Padding", 15, configPath.c_str());
         ICON_SIZE = GetPrivateProfileIntW(L"Appearance", L"IconSize", 24, configPath.c_str());
+        PREVIEW_WIDTH = GetPrivateProfileIntW(L"Appearance", L"PreviewWidth", 250, configPath.c_str());
+        WINDOW_WIDTH = baseWidth + PREVIEW_WIDTH + PADDING * 2;
 
         wchar_t fontNameStr[100];
         GetPrivateProfileStringW(L"Appearance", L"FontName", L"Segoe UI", fontNameStr, 100, configPath.c_str());
