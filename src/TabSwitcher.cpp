@@ -599,22 +599,17 @@ void TabSwitcher::DrawWindowItem(HDC hdc, const WindowInfo& window, int index, i
         clientRect.right - Config::PADDING, y + Config::ITEM_HEIGHT
     };
     
-    // Draw a custom selection cursor instead of filling the whole item
+    // Highlight selected item with background and border
     if (index == m_selectedIndex) {
-        //FillRect(hdc, &itemRect, m_selectedBrush);
-        HPEN highlightPen = CreatePen(PS_SOLID, 2, Config::HIGHLIGHT_COLOR);
-        //FrameRect(hdc, &itemRect, (HBRUSH)highlightPen);
-        
-        // Draw a ">" like cursor
-        HPEN oldPen = (HPEN)SelectObject(hdc, highlightPen);
-        int cursorY = y + Config::ITEM_HEIGHT / 2;
-        int cursorX = itemRect.left + 5;
-        MoveToEx(hdc, cursorX, cursorY - 5, nullptr);
-        LineTo(hdc, cursorX + 5, cursorY);
-        LineTo(hdc, cursorX, cursorY + 5);
-        SelectObject(hdc, oldPen);
+        FillRect(hdc, &itemRect, m_selectedBrush);
 
-        DeleteObject(highlightPen);
+        HPEN borderPen = CreatePen(PS_SOLID, 2, Config::SELECTED_BORDER_COLOR);
+        HGDIOBJ oldPen = SelectObject(hdc, borderPen);
+        HGDIOBJ oldBrush = SelectObject(hdc, GetStockObject(NULL_BRUSH));
+        Rectangle(hdc, itemRect.left, itemRect.top, itemRect.right, itemRect.bottom);
+        SelectObject(hdc, oldBrush);
+        SelectObject(hdc, oldPen);
+        DeleteObject(borderPen);
     }
     
     int x = itemRect.left + Config::PADDING + 15; // Indent text a bit more
