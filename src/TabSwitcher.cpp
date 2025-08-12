@@ -76,9 +76,6 @@ bool TabSwitcher::Create() {
 
         // Set background to transparent to let the DWM blur through
         SetLayeredWindowAttributes(m_hwnd, RGB(0,0,0), 0, LWA_COLORKEY);
-
-        // Create a timer for the caret
-        SetTimer(m_hwnd, 1, 500, nullptr); // Timer ID 1, 500ms interval
     }
 
     return m_hwnd != nullptr;
@@ -112,7 +109,10 @@ void TabSwitcher::Show() {
     ShowWindow(m_hwnd, SW_SHOWNA); // Show without activating
     SetForegroundWindow(m_hwnd); // Force it to the foreground
     SetFocus(m_hwnd);
-    
+
+    // Start caret blinking timer
+    SetTimer(m_hwnd, 1, 500, nullptr); // Timer ID 1, 500ms interval
+
     m_isVisible.store(true);
     InvalidateRect(m_hwnd, nullptr, TRUE);
 }
@@ -121,6 +121,7 @@ void TabSwitcher::Hide() {
     if (!m_isVisible.load()) return;
     UnregisterThumbnail();
     ShowWindow(m_hwnd, SW_HIDE);
+    KillTimer(m_hwnd, 1); // Stop caret timer
     m_isVisible.store(false);
 }
 
