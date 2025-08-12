@@ -69,6 +69,7 @@ private:
     int m_scrollOffset;
     std::wstring m_searchText;
     bool m_isCaretVisible;
+    float m_scaleFactor{1.0f};
     
     // GDI objects
     HFONT m_font;

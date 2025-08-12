@@ -22,7 +22,7 @@
 #endif
 
 
-TabSwitcher::TabSwitcher() 
+TabSwitcher::TabSwitcher()
     : m_hwnd(nullptr)
     , m_hThumbnail(nullptr)
     , m_hInstance(GetModuleHandle(nullptr))
@@ -51,30 +51,41 @@ TabSwitcher::~TabSwitcher() {
 }
 
 bool TabSwitcher::Create() {
-    m_font = CreateFontW(
-        Config::FONT_SIZE, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE,
-        DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS,
-        DEFAULT_QUALITY, DEFAULT_PITCH | FF_SWISS, Config::FONT_NAME.c_str()
-    );
-
     m_backgroundBrush = CreateSolidBrush(Config::BG_COLOR);
     m_selectedBrush = CreateSolidBrush(Config::SELECTED_COLOR);
 
     m_hwnd = CreateWindowExW(
-        WS_EX_TOPMOST | WS_EX_TOOLWINDOW | WS_EX_LAYERED, // WS_EX_LAYERED for transparency
+        WS_EX_TOPMOST | WS_EX_TOOLWINDOW | WS_EX_LAYERED,
         WINDOW_CLASS_NAME,
         WINDOW_TITLE,
-        WS_POPUP, // Use WS_POPUP for a borderless window
+        WS_POPUP,
         0, 0, Config::WINDOW_WIDTH, Config::WINDOW_HEIGHT,
         nullptr, nullptr, m_hInstance, this
     );
 
     if (m_hwnd) {
-        // Apply modern styles
+        UINT dpi = GetDpiForWindow(m_hwnd);
+        m_scaleFactor = static_cast<float>(dpi) / 96.0f;
+
+        Config::WINDOW_WIDTH = static_cast<int>(Config::WINDOW_WIDTH * m_scaleFactor);
+        Config::WINDOW_HEIGHT = static_cast<int>(Config::WINDOW_HEIGHT * m_scaleFactor);
+        Config::ITEM_HEIGHT = static_cast<int>(Config::ITEM_HEIGHT * m_scaleFactor);
+        Config::PADDING = static_cast<int>(Config::PADDING * m_scaleFactor);
+        Config::ICON_SIZE = static_cast<int>(Config::ICON_SIZE * m_scaleFactor);
+        Config::PREVIEW_WIDTH = static_cast<int>(Config::PREVIEW_WIDTH * m_scaleFactor);
+        Config::FONT_SIZE = static_cast<int>(Config::FONT_SIZE * m_scaleFactor);
+
+        SetWindowPos(m_hwnd, nullptr, 0, 0, Config::WINDOW_WIDTH, Config::WINDOW_HEIGHT,
+                     SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE);
+
+        m_font = CreateFontW(
+            Config::FONT_SIZE, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE,
+            DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS,
+            DEFAULT_QUALITY, DEFAULT_PITCH | FF_SWISS, Config::FONT_NAME.c_str()
+        );
+
         BOOL enable = TRUE;
         DwmSetWindowAttribute(m_hwnd, DWMWA_WINDOW_CORNER_PREFERENCE, &enable, sizeof(enable));
-
-        // Set background to transparent to let the DWM blur through
         SetLayeredWindowAttributes(m_hwnd, RGB(0,0,0), 0, LWA_COLORKEY);
     }
 
@@ -564,7 +575,7 @@ void TabSwitcher::DrawWindow(HDC hdc) {
     RECT clientRect;
     GetClientRect(m_hwnd, &clientRect);
     int previewLeft = clientRect.right - Config::PREVIEW_WIDTH - Config::PADDING;
-    
+
     // The background is now handled by DWM (Mica/Acrylic), so we don't need to fill it.
     // FillRect(hdc, &clientRect, m_backgroundBrush);
     
@@ -574,6 +585,7 @@ void TabSwitcher::DrawWindow(HDC hdc) {
     DrawSearchBox(hdc);
 
     int y = Config::PADDING + Config::ITEM_HEIGHT; // Start list below search box
+    int textHeight = static_cast<int>(20 * m_scaleFactor);
 
     if (m_filteredWindows.empty()) {
         bool windowsEmpty;
@@ -583,7 +595,7 @@ void TabSwitcher::DrawWindow(HDC hdc) {
         }
         std::wstring message = windowsEmpty ? L"Lade Fenster..." : L"Keine Fenster gefunden";
         DrawTextString(hdc, message, Config::PADDING,
-                       y + (Config::ITEM_HEIGHT - 20) / 2,
+                       y + (Config::ITEM_HEIGHT - textHeight) / 2,
                        previewLeft - 2 * Config::PADDING, Config::TEXT_COLOR);
         SelectObject(hdc, oldFont);
         return;
@@ -628,37 +640,35 @@ void TabSwitcher::DrawSearchBox(HDC hdc) {
     DeleteObject(borderPen);
 
     int x = searchRect.left + Config::PADDING;
+    int textHeight = static_cast<int>(20 * m_scaleFactor);
 
     std::wstring displayText = L"Search: " + m_searchText;
 
-    // Measure the width of the text to determine if it exceeds the search box
     SIZE textSize{};
     GetTextExtentPoint32W(hdc, displayText.c_str(), static_cast<int>(displayText.length()), &textSize);
 
     int availableWidth = searchRect.right - x - Config::PADDING;
     int scrollOffset = 0;
 
-    // Scroll horizontally if the text is wider than the available space
     if (textSize.cx > availableWidth) {
         scrollOffset = textSize.cx - availableWidth;
     }
 
-    // Clip text rendering to the search box and apply scroll offset
     int savedDC = SaveDC(hdc);
     RECT clipRect = { x, searchRect.top, searchRect.right - Config::PADDING, searchRect.bottom };
     IntersectClipRect(hdc, clipRect.left, clipRect.top, clipRect.right, clipRect.bottom);
     SetBkMode(hdc, TRANSPARENT);
     SetTextColor(hdc, Config::TEXT_COLOR);
-    TextOutW(hdc, x - scrollOffset, Config::PADDING + (Config::ITEM_HEIGHT - 20) / 2,
+    TextOutW(hdc, x - scrollOffset, Config::PADDING + (Config::ITEM_HEIGHT - textHeight) / 2,
              displayText.c_str(), static_cast<int>(displayText.length()));
     RestoreDC(hdc, savedDC);
 
-    // Draw the blinking caret
     if (m_isCaretVisible) {
         int caretX = x + textSize.cx - scrollOffset;
         caretX = min(caretX, searchRect.right - Config::PADDING);
-        int caretY = searchRect.top + (Config::ITEM_HEIGHT - 20) / 2;
-        RECT caretRect = { caretX, caretY, caretX + 2, caretY + 20 };
+        int caretY = searchRect.top + (Config::ITEM_HEIGHT - textHeight) / 2;
+        int caretWidth = std::max(1, static_cast<int>(2 * m_scaleFactor));
+        RECT caretRect = { caretX, caretY, caretX + caretWidth, caretY + textHeight };
         FillRect(hdc, &caretRect, (HBRUSH)GetStockObject(WHITE_BRUSH));
     }
 }
@@ -676,23 +686,21 @@ void TabSwitcher::DrawWindowItem(HDC hdc, const WindowInfo& window, int index, i
     
     // Draw a custom selection cursor instead of filling the whole item
     if (index == m_selectedIndex) {
-        //FillRect(hdc, &itemRect, m_selectedBrush);
-        HPEN highlightPen = CreatePen(PS_SOLID, 2, Config::HIGHLIGHT_COLOR);
-        //FrameRect(hdc, &itemRect, (HBRUSH)highlightPen);
-        
-        // Draw a ">" like cursor
+        HPEN highlightPen = CreatePen(PS_SOLID, std::max(1, static_cast<int>(2 * m_scaleFactor)), Config::HIGHLIGHT_COLOR);
+
         HPEN oldPen = (HPEN)SelectObject(hdc, highlightPen);
         int cursorY = y + Config::ITEM_HEIGHT / 2;
-        int cursorX = itemRect.left + 5;
-        MoveToEx(hdc, cursorX, cursorY - 5, nullptr);
-        LineTo(hdc, cursorX + 5, cursorY);
-        LineTo(hdc, cursorX, cursorY + 5);
+        int cursorOffset = static_cast<int>(5 * m_scaleFactor);
+        int cursorX = itemRect.left + cursorOffset;
+        MoveToEx(hdc, cursorX, cursorY - cursorOffset, nullptr);
+        LineTo(hdc, cursorX + cursorOffset, cursorY);
+        LineTo(hdc, cursorX, cursorY + cursorOffset);
         SelectObject(hdc, oldPen);
 
         DeleteObject(highlightPen);
     }
-    
-    int x = itemRect.left + Config::PADDING + 15; // Indent text a bit more
+
+    int x = itemRect.left + Config::PADDING + static_cast<int>(15 * m_scaleFactor); // Indent text a bit more
     
     if (window.icon) {
         DrawIconEx(hdc, x, y + (Config::ITEM_HEIGHT - Config::ICON_SIZE) / 2, window.icon, 
@@ -701,9 +709,10 @@ void TabSwitcher::DrawWindowItem(HDC hdc, const WindowInfo& window, int index, i
     x += Config::ICON_SIZE + Config::PADDING;
     
     std::wstring displayText = window.title;
-    
+
     COLORREF textColor = Config::TEXT_COLOR; // Text color is now consistent
-    DrawTextString(hdc, displayText, x, y + (Config::ITEM_HEIGHT - 20) / 2,
+    int textHeight = static_cast<int>(20 * m_scaleFactor);
+    DrawTextString(hdc, displayText, x, y + (Config::ITEM_HEIGHT - textHeight) / 2,
              itemRect.right - x - Config::PADDING, textColor);
 }
 
@@ -713,7 +722,8 @@ void TabSwitcher::DrawIcon(HDC hdc, HICON icon, int x, int y) {
 
 void TabSwitcher::DrawTextString(HDC hdc, const std::wstring& text, int x, int y, int width, COLORREF color) {
     SetTextColor(hdc, color);
-    RECT textRect = { x, y, x + width, y + 20 };
+    int textHeight = static_cast<int>(20 * m_scaleFactor);
+    RECT textRect = { x, y, x + width, y + textHeight };
     DrawTextW(hdc, text.c_str(), -1, &textRect, DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS | DT_NOCLIP);
 }
 
