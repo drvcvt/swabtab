@@ -712,8 +712,55 @@ void TabSwitcher::DrawWindowItem(HDC hdc, const WindowInfo& window, int index, i
 
     COLORREF textColor = Config::TEXT_COLOR; // Text color is now consistent
     int textHeight = static_cast<int>(20 * m_scaleFactor);
-    DrawTextString(hdc, displayText, x, y + (Config::ITEM_HEIGHT - textHeight) / 2,
-             itemRect.right - x - Config::PADDING, textColor);
+    int textY = y + (Config::ITEM_HEIGHT - textHeight) / 2;
+    int maxWidth = itemRect.right - x - Config::PADDING;
+
+    int savedDC = SaveDC(hdc);
+    RECT clipRect = { x, textY, x + maxWidth, textY + textHeight };
+    IntersectClipRect(hdc, clipRect.left, clipRect.top, clipRect.right, clipRect.bottom);
+
+    if (m_searchText.empty()) {
+        SetTextColor(hdc, textColor);
+        TextOutW(hdc, x, textY, displayText.c_str(), static_cast<int>(displayText.length()));
+    } else {
+        std::wstring titleLower = displayText;
+        std::wstring searchLower = m_searchText;
+        std::transform(titleLower.begin(), titleLower.end(), titleLower.begin(), ::towlower);
+        std::transform(searchLower.begin(), searchLower.end(), searchLower.begin(), ::towlower);
+
+        size_t pos = 0;
+        int curX = x;
+        while (pos < displayText.size()) {
+            size_t matchPos = titleLower.find(searchLower, pos);
+            size_t segmentEnd = matchPos == std::wstring::npos ? displayText.size() : matchPos;
+
+            std::wstring segment = displayText.substr(pos, segmentEnd - pos);
+            if (!segment.empty()) {
+                SIZE size{};
+                GetTextExtentPoint32W(hdc, segment.c_str(), static_cast<int>(segment.size()), &size);
+                SetTextColor(hdc, textColor);
+                TextOutW(hdc, curX, textY, segment.c_str(), static_cast<int>(segment.size()));
+                curX += size.cx;
+            }
+
+            if (matchPos == std::wstring::npos) {
+                break;
+            }
+
+            std::wstring matchSegment = displayText.substr(matchPos, m_searchText.size());
+            if (!matchSegment.empty()) {
+                SIZE size{};
+                GetTextExtentPoint32W(hdc, matchSegment.c_str(), static_cast<int>(matchSegment.size()), &size);
+                SetTextColor(hdc, Config::HIGHLIGHT_COLOR);
+                TextOutW(hdc, curX, textY, matchSegment.c_str(), static_cast<int>(matchSegment.size()));
+                curX += size.cx;
+            }
+
+            pos = matchPos + m_searchText.size();
+        }
+    }
+
+    RestoreDC(hdc, savedDC);
 }
 
 void TabSwitcher::DrawIcon(HDC hdc, HICON icon, int x, int y) {
