@@ -85,6 +85,8 @@ private:
     void OnKeyDown(WPARAM vkCode, bool isShiftPressed);
     void OnChar(WPARAM ch);
     void OnCustomKeyDown(WPARAM vkCode, LPARAM lParam);
+    void OnLButtonDown(int x, int y);
+    void OnMouseWheel(short delta);
     
     // UI methods
     void SelectNext();

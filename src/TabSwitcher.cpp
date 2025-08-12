@@ -127,7 +127,7 @@ void TabSwitcher::Hide() {
 void TabSwitcher::RegisterWindowClass() {
     WNDCLASSEXW wc = {};
     wc.cbSize = sizeof(WNDCLASSEXW);
-    wc.style = CS_HREDRAW | CS_VREDRAW;
+    wc.style = CS_HREDRAW | CS_VREDRAW | CS_DBLCLKS;
     wc.lpfnWndProc = WindowProc;
     wc.hInstance = m_hInstance;
     wc.hCursor = LoadCursor(nullptr, IDC_ARROW);
@@ -196,6 +196,19 @@ LRESULT TabSwitcher::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
 
         case WM_APP_KEYDOWN:
             OnCustomKeyDown(wParam, lParam);
+            return 0;
+
+        case WM_LBUTTONDOWN:
+            OnLButtonDown(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
+            return 0;
+
+        case WM_LBUTTONDBLCLK:
+            OnLButtonDown(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
+            ActivateSelectedWindow();
+            return 0;
+
+        case WM_MOUSEWHEEL:
+            OnMouseWheel(GET_WHEEL_DELTA_WPARAM(wParam));
             return 0;
 
         case WM_APP + 2: // Refresh from background thread
@@ -358,6 +371,41 @@ void TabSwitcher::OnCustomKeyDown(WPARAM vkCode, LPARAM lParam) {
                 if (ToUnicode(static_cast<UINT>(vkCode), scanCode, keyboardState, buffer, 2, 0) == 1) {
             OnChar(buffer[0]);
         }
+    }
+}
+
+void TabSwitcher::OnLButtonDown(int x, int y) {
+    (void)x;
+    int listTop = Config::PADDING + Config::ITEM_HEIGHT;
+    if (y < listTop) {
+        return; // Clicked in search box or padding
+    }
+
+    int index = (y - listTop) / Config::ITEM_HEIGHT + m_scrollOffset;
+    if (index < 0 || index >= static_cast<int>(m_filteredWindows.size())) {
+        return;
+    }
+
+    int oldSelectedIndex = m_selectedIndex;
+    m_selectedIndex = index;
+    EnsureSelectionIsVisible();
+    SetFocus(m_hwnd);
+
+    if (oldSelectedIndex != m_selectedIndex) {
+        if (oldSelectedIndex >= 0 && oldSelectedIndex < static_cast<int>(m_filteredWindows.size())) {
+            RECT oldRect = GetItemRect(oldSelectedIndex);
+            InvalidateRect(m_hwnd, &oldRect, TRUE);
+        }
+        RECT newRect = GetItemRect(m_selectedIndex);
+        InvalidateRect(m_hwnd, &newRect, TRUE);
+    }
+}
+
+void TabSwitcher::OnMouseWheel(short delta) {
+    if (delta > 0) {
+        SelectPrevious();
+    } else if (delta < 0) {
+        SelectNext();
     }
 }
 
