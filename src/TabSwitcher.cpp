@@ -330,6 +330,22 @@ void TabSwitcher::OnKeyDown(WPARAM vkCode, bool isShiftPressed) {
             SelectNext();
             break;
 
+        case VK_PRIOR: // Page Up
+            SelectPageUp();
+            break;
+
+        case VK_NEXT: // Page Down
+            SelectPageDown();
+            break;
+
+        case VK_HOME:
+            SelectFirst();
+            break;
+
+        case VK_END:
+            SelectLast();
+            break;
+
         case VK_TAB:
             if (isShiftPressed) {
 #ifdef DEBUG
@@ -345,7 +361,16 @@ void TabSwitcher::OnKeyDown(WPARAM vkCode, bool isShiftPressed) {
             break;
             
         case VK_BACK:
-            if (!m_searchText.empty()) {
+            if (GetKeyState(VK_CONTROL) & 0x8000) {
+                if (!m_searchText.empty()) {
+                    while (!m_searchText.empty() && m_searchText.back() == L' ')
+                        m_searchText.pop_back();
+                    while (!m_searchText.empty() && m_searchText.back() != L' ')
+                        m_searchText.pop_back();
+                    FilterWindows();
+                    InvalidateRect(m_hwnd, nullptr, TRUE);
+                }
+            } else if (!m_searchText.empty()) {
                 m_searchText.pop_back();
                 FilterWindows();
                 InvalidateRect(m_hwnd, nullptr, TRUE);
@@ -367,7 +392,9 @@ void TabSwitcher::OnCustomKeyDown(WPARAM vkCode, LPARAM lParam) {
     UINT scanCode = LOWORD(lParam);
 
     // Treat as regular key down
-    if (vkCode == VK_ESCAPE || vkCode == VK_RETURN || vkCode == VK_UP || vkCode == VK_DOWN || vkCode == VK_BACK || vkCode == VK_TAB) {
+    if (vkCode == VK_ESCAPE || vkCode == VK_RETURN || vkCode == VK_UP || vkCode == VK_DOWN ||
+        vkCode == VK_BACK || vkCode == VK_TAB || vkCode == VK_PRIOR || vkCode == VK_NEXT ||
+        vkCode == VK_HOME || vkCode == VK_END) {
         OnKeyDown(vkCode, isShiftPressed);
     } else {
         // For character input, we need to translate the key
@@ -560,6 +587,45 @@ void TabSwitcher::SelectPrevious() {
             InvalidateRect(m_hwnd, &newItemRect, TRUE);
         }
     }
+}
+
+void TabSwitcher::SelectPageDown() {
+    if (m_filteredWindows.empty()) return;
+    RECT clientRect;
+    GetClientRect(m_hwnd, &clientRect);
+    int listTopY = Config::PADDING + Config::ITEM_HEIGHT;
+    int maxVisibleItems = (clientRect.bottom - listTopY) / Config::ITEM_HEIGHT;
+
+    m_selectedIndex = std::min(m_selectedIndex + maxVisibleItems,
+                               static_cast<int>(m_filteredWindows.size()) - 1);
+    EnsureSelectionIsVisible();
+    InvalidateRect(m_hwnd, nullptr, TRUE);
+}
+
+void TabSwitcher::SelectPageUp() {
+    if (m_filteredWindows.empty()) return;
+    RECT clientRect;
+    GetClientRect(m_hwnd, &clientRect);
+    int listTopY = Config::PADDING + Config::ITEM_HEIGHT;
+    int maxVisibleItems = (clientRect.bottom - listTopY) / Config::ITEM_HEIGHT;
+
+    m_selectedIndex = std::max(m_selectedIndex - maxVisibleItems, 0);
+    EnsureSelectionIsVisible();
+    InvalidateRect(m_hwnd, nullptr, TRUE);
+}
+
+void TabSwitcher::SelectFirst() {
+    if (m_filteredWindows.empty()) return;
+    m_selectedIndex = 0;
+    EnsureSelectionIsVisible();
+    InvalidateRect(m_hwnd, nullptr, TRUE);
+}
+
+void TabSwitcher::SelectLast() {
+    if (m_filteredWindows.empty()) return;
+    m_selectedIndex = static_cast<int>(m_filteredWindows.size()) - 1;
+    EnsureSelectionIsVisible();
+    InvalidateRect(m_hwnd, nullptr, TRUE);
 }
 
 void TabSwitcher::ActivateSelectedWindow() {
