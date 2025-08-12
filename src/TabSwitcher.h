@@ -92,6 +92,10 @@ private:
     // UI methods
     void SelectNext();
     void SelectPrevious();
+    void SelectPageDown();
+    void SelectPageUp();
+    void SelectFirst();
+    void SelectLast();
     void ActivateSelectedWindow();
     void DrawWindow(HDC hdc);
     void DrawSearchBox(HDC hdc);
