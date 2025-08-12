@@ -24,7 +24,7 @@ namespace Config {
     extern COLORREF BG_COLOR;
     extern COLORREF TEXT_COLOR;
     extern COLORREF SELECTED_COLOR;
-    extern COLORREF HIGHLIGHT_COLOR;
+    extern COLORREF SELECTED_BORDER_COLOR;
     extern COLORREF BORDER_COLOR;
 
     // Window Filters
