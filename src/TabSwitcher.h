@@ -9,6 +9,7 @@
 #include <chrono>
 #include <algorithm>
 #include <dwmapi.h>
+#include <cmath>
 
 constexpr UINT WM_APP_KEYDOWN = WM_APP + 1;
 

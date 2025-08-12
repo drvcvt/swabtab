@@ -10,6 +10,9 @@
 #include <numeric>
 #include <vector>
 
+#ifndef algorithm
+#include <algorithm>
+#endif
 
 
 // Define modern DWM attributes if they are not available in the current SDK
@@ -731,7 +734,7 @@ void TabSwitcher::DrawSearchBox(HDC hdc) {
 
     if (m_isCaretVisible) {
         int caretX = x + textSize.cx - scrollOffset;
-        caretX = min(caretX, searchRect.right - Config::PADDING);
+        caretX = std::min(caretX, static_cast<int>(searchRect.right - Config::PADDING));
         int caretY = searchRect.top + (Config::ITEM_HEIGHT - textHeight) / 2;
         int caretWidth = std::max(1, static_cast<int>(2 * m_scaleFactor));
         RECT caretRect = { caretX, caretY, caretX + caretWidth, caretY + textHeight };

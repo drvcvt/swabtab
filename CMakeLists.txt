@@ -6,7 +6,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Windows specific settings
 if(WIN32)
-    add_definitions(-DUNICODE -D_UNICODE)
+    add_definitions(-DNOMINMAX -DUNICODE -D_UNICODE)
     set(CMAKE_SYSTEM_VERSION 10.0)
 endif()
 
