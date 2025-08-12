@@ -51,7 +51,7 @@ namespace Config {
     COLORREF BG_COLOR = RGB(32, 32, 32);
     COLORREF TEXT_COLOR = RGB(240, 240, 240);
     COLORREF SELECTED_COLOR = RGB(55, 55, 55);
-    COLORREF HIGHLIGHT_COLOR = RGB(0, 120, 215);
+    COLORREF SELECTED_BORDER_COLOR = RGB(0, 120, 215);
     COLORREF BORDER_COLOR = RGB(80, 80, 80);
     std::vector<std::wstring> EXCLUDED_PROCESSES;
     std::vector<std::wstring> EXCLUDED_TITLES;
@@ -82,8 +82,8 @@ namespace Config {
         TEXT_COLOR = parseColor(colorStr, RGB(240, 240, 240));
         GetPrivateProfileStringW(L"Appearance", L"SelectedColor", L"55,55,55", colorStr, 50, configPath.c_str());
         SELECTED_COLOR = parseColor(colorStr, RGB(55, 55, 55));
-        GetPrivateProfileStringW(L"Appearance", L"HighlightColor", L"0,120,215", colorStr, 50, configPath.c_str());
-        HIGHLIGHT_COLOR = parseColor(colorStr, RGB(0, 120, 215));
+        GetPrivateProfileStringW(L"Appearance", L"SelectedBorderColor", L"0,120,215", colorStr, 50, configPath.c_str());
+        SELECTED_BORDER_COLOR = parseColor(colorStr, RGB(0, 120, 215));
         GetPrivateProfileStringW(L"Appearance", L"BorderColor", L"80,80,80", colorStr, 50, configPath.c_str());
         BORDER_COLOR = parseColor(colorStr, RGB(80, 80, 80));
 
