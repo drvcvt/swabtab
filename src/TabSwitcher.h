@@ -42,12 +42,8 @@ private:
     void StopWindowUpdater();
     void UpdateWindowsInBackground();
 
-    // Fuzzy matching scoring methods
-    double CalculateFuzzyScore(const std::wstring& search, const std::wstring& target);
-    double CalculatePositionScore(const std::wstring& search, const std::wstring& target);
-    double CalculatePrefixScore(const std::wstring& search, const std::wstring& target);
-    double CalculateSequentialScore(const std::wstring& search, const std::wstring& target);
-    double CalculateSubstringScore(const std::wstring& search, const std::wstring& target);
+    // Lightweight fuzzy match using Bitap/Shift-And
+    bool BitapSearch(const std::wstring& text, const std::wstring& pattern, int maxErrors = 1);
 
     // Window management
     HWND m_hwnd;
