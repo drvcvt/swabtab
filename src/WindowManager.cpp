@@ -1,16 +1,48 @@
 #include "WindowManager.h"
 #include "Utils.h"
 #include <algorithm>
+#include <unordered_map>
+#include <unordered_set>
+
+struct IconCacheEntry {
+    HICON icon;
+    bool destroy;
+};
+
+std::unordered_map<DWORD, std::wstring> g_processNameCache;
+std::unordered_map<std::wstring, IconCacheEntry> g_iconCache;
 
 WindowManager::WindowManager() {
 }
 
 WindowManager::~WindowManager() {
+    for (auto& entry : g_iconCache) {
+        if (entry.second.destroy && entry.second.icon) {
+            DestroyIcon(entry.second.icon);
+        }
+    }
+    g_iconCache.clear();
 }
 
 std::vector<WindowInfo> WindowManager::GetAllWindows() {
     m_windows.clear();
     EnumWindows(EnumWindowsProc, reinterpret_cast<LPARAM>(this));
+
+    std::unordered_set<std::wstring> activeProcesses;
+    for (const auto& info : m_windows) {
+        activeProcesses.insert(info.processName);
+    }
+
+    for (auto it = g_iconCache.begin(); it != g_iconCache.end(); ) {
+        if (activeProcesses.find(it->first) == activeProcesses.end()) {
+            if (it->second.destroy && it->second.icon) {
+                DestroyIcon(it->second.icon);
+            }
+            it = g_iconCache.erase(it);
+        } else {
+            ++it;
+        }
+    }
     return m_windows;
 }
 
@@ -89,7 +121,13 @@ WindowInfo WindowManager::CreateWindowInfo(HWND hwnd) {
     
     // Get process ID and name
     GetWindowThreadProcessId(hwnd, &info.processId);
-    info.processName = Utils::GetProcessName(info.processId);
+    auto procIt = g_processNameCache.find(info.processId);
+    if (procIt != g_processNameCache.end()) {
+        info.processName = procIt->second;
+    } else {
+        info.processName = Utils::GetProcessName(info.processId);
+        g_processNameCache[info.processId] = info.processName;
+    }
     
     // Append process name to title for better searchability
     if (!info.processName.empty()) {
@@ -101,7 +139,17 @@ WindowInfo WindowManager::CreateWindowInfo(HWND hwnd) {
     info.isMinimized = IsIconic(hwnd) != FALSE;
 
     // Get icon
-    info.icon = Utils::GetWindowIcon(hwnd, info.destroyIcon);
+    auto iconIt = g_iconCache.find(info.processName);
+    if (iconIt != g_iconCache.end()) {
+        info.icon = iconIt->second.icon;
+        info.destroyIcon = false;
+    } else {
+        IconCacheEntry entry{};
+        entry.icon = Utils::GetWindowIcon(hwnd, entry.destroy);
+        g_iconCache[info.processName] = entry;
+        info.icon = entry.icon;
+        info.destroyIcon = false;
+    }
     
     return info;
 }

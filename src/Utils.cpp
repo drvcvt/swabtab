@@ -3,33 +3,38 @@
 #include <algorithm>
 #include <cctype>
 #include <cwctype>
-#include <tlhelp32.h>
 #include <shellapi.h>
-#include <map>
 #include <vector>
+#include <unordered_map>
+#include <filesystem>
+
+extern std::unordered_map<DWORD, std::wstring> g_processNameCache;
 
 namespace Utils {
 
 std::wstring GetProcessName(DWORD processId) {
-    HANDLE hSnapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
-    if (hSnapshot == INVALID_HANDLE_VALUE) {
+    auto it = g_processNameCache.find(processId);
+    if (it != g_processNameCache.end()) {
+        return it->second;
+    }
+
+    HANDLE hProcess = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, processId);
+    if (!hProcess) {
         return L"";
     }
 
-    PROCESSENTRY32W pe32;
-    pe32.dwSize = sizeof(PROCESSENTRY32W);
-
-    if (Process32FirstW(hSnapshot, &pe32)) {
-        do {
-            if (pe32.th32ProcessID == processId) {
-                CloseHandle(hSnapshot);
-                return std::wstring(pe32.szExeFile);
-            }
-        } while (Process32NextW(hSnapshot, &pe32));
+    wchar_t exePath[MAX_PATH];
+    DWORD size = MAX_PATH;
+    std::wstring result;
+    if (QueryFullProcessImageNameW(hProcess, 0, exePath, &size)) {
+        std::wstring fileName = std::filesystem::path(exePath).filename().wstring();
+        result = fileName;
     }
 
-    CloseHandle(hSnapshot);
-    return L"";
+    CloseHandle(hProcess);
+
+    g_processNameCache[processId] = result;
+    return result;
 }
 
 std::wstring RemoveFileExtension(const std::wstring& filename) {
