@@ -134,6 +134,13 @@ WindowInfo WindowManager::CreateWindowInfo(HWND hwnd) {
         info.title += L" (" + info.processName + L")";
     }
 
+    // Precompute lowercase variants for faster searching
+    info.titleLower = info.title;
+    std::transform(info.titleLower.begin(), info.titleLower.end(), info.titleLower.begin(), ::towlower);
+
+    info.processLower = Utils::RemoveFileExtension(info.processName);
+    std::transform(info.processLower.begin(), info.processLower.end(), info.processLower.begin(), ::towlower);
+
     // Window state
     info.isVisible = IsWindowVisible(hwnd) != FALSE;
     info.isMinimized = IsIconic(hwnd) != FALSE;

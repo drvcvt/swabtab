@@ -496,12 +496,6 @@ void TabSwitcher::FilterWindows() {
                            [](wchar_t c) { return static_cast<char>(c); });
 #endif
 
-            std::wstring title_lower = window.title;
-            std::transform(title_lower.begin(), title_lower.end(), title_lower.begin(), ::towlower);
-
-            std::wstring process_lower = Utils::RemoveFileExtension(window.processName);
-            std::transform(process_lower.begin(), process_lower.end(), process_lower.begin(), ::towlower);
-
             auto score_fn = [&](const std::wstring& target) -> double {
                 if (target.rfind(search_lower, 0) == 0)
                     return 100.0;
@@ -512,8 +506,8 @@ void TabSwitcher::FilterWindows() {
                 return 0.0;
             };
 
-            double title_score = score_fn(title_lower);
-            double process_score = score_fn(process_lower);
+            double title_score = score_fn(window.titleLower);
+            double process_score = score_fn(window.processLower);
             double final_score = std::max(title_score, process_score);
 
 #ifdef DEBUG
