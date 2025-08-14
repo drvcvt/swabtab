@@ -7,8 +7,9 @@
 #include <windowsx.h>
 #include <dwmapi.h> // Include for DWM functions
 #include <algorithm>
-#include <numeric>
 #include <vector>
+#include <unordered_map>
+#include <cstdint>
 
 #ifndef algorithm
 #include <algorithm>
@@ -464,7 +465,7 @@ void TabSwitcher::FilterWindows() {
 #ifdef DEBUG
         std::string search_text_str;
         std::transform(m_searchText.begin(), m_searchText.end(), std::back_inserter(search_text_str),
-                      [](wchar_t c) { return static_cast<char>(c); });
+                       [](wchar_t c) { return static_cast<char>(c); });
         std::cout << "Searching for: " << search_text_str << std::endl;
 #endif
 
@@ -472,68 +473,46 @@ void TabSwitcher::FilterWindows() {
         std::wstring search_lower = m_searchText;
         std::transform(search_lower.begin(), search_lower.end(), search_lower.begin(), ::towlower);
 
+        bool useFuzzy = search_lower.size() <= 2;
+
         for (const auto& window : m_windows) {
-            // For debugging: convert wstring to string for cout
 #ifdef DEBUG
             std::string window_title_str;
             std::transform(window.title.begin(), window.title.end(), std::back_inserter(window_title_str),
-                          [](wchar_t c) { return static_cast<char>(c); });
+                           [](wchar_t c) { return static_cast<char>(c); });
 
             std::string process_name_str;
             std::transform(window.processName.begin(), window.processName.end(), std::back_inserter(process_name_str),
-                          [](wchar_t c) { return static_cast<char>(c); });
+                           [](wchar_t c) { return static_cast<char>(c); });
 #endif
 
-            // Convert window title and process name to lowercase for case-insensitive matching
             std::wstring title_lower = window.title;
             std::transform(title_lower.begin(), title_lower.end(), title_lower.begin(), ::towlower);
-            
-            std::wstring process_lower = window.processName;
+
+            std::wstring process_lower = Utils::RemoveFileExtension(window.processName);
             std::transform(process_lower.begin(), process_lower.end(), process_lower.begin(), ::towlower);
-            process_lower = Utils::RemoveFileExtension(process_lower);
 
-            // Calculate scores for window title
-            double title_fuzzy = CalculateFuzzyScore(search_lower, title_lower);
-            double title_position = CalculatePositionScore(search_lower, title_lower);
-            double title_prefix = CalculatePrefixScore(search_lower, title_lower);
-            double title_sequential = CalculateSequentialScore(search_lower, title_lower);
-            double title_substring = CalculateSubstringScore(search_lower, title_lower);
+            auto score_fn = [&](const std::wstring& target) -> double {
+                if (target.rfind(search_lower, 0) == 0)
+                    return 100.0;
+                if (target.find(search_lower) != std::wstring::npos)
+                    return 80.0;
+                if (useFuzzy && BitapSearch(target, search_lower))
+                    return 60.0;
+                return 0.0;
+            };
 
-            double title_score = (title_fuzzy * 0.25) +
-                               (title_position * 0.15) +
-                               (title_prefix * 0.25) +
-                               (title_sequential * 0.15) +
-                               (title_substring * 0.20);
-
-            // Calculate scores for process name
-            double process_fuzzy = CalculateFuzzyScore(search_lower, process_lower);
-            double process_position = CalculatePositionScore(search_lower, process_lower);
-            double process_prefix = CalculatePrefixScore(search_lower, process_lower);
-            double process_sequential = CalculateSequentialScore(search_lower, process_lower);
-            double process_substring = CalculateSubstringScore(search_lower, process_lower);
-
-            double process_score = (process_fuzzy * 0.25) +
-                                 (process_position * 0.15) +
-                                 (process_prefix * 0.25) +
-                                 (process_sequential * 0.15) +
-                                 (process_substring * 0.20);
-
-            // Take the better score, but give a small bonus if process name matches well
+            double title_score = score_fn(title_lower);
+            double process_score = score_fn(process_lower);
             double final_score = std::max(title_score, process_score);
-            
-            // Bonus if process name has a good match (helps with app-specific searches)
-            if (process_score > 70) {
-                final_score += 10; // Small bonus for good process name matches
-            }
-            
+
 #ifdef DEBUG
             std::cout << "Window: '" << window_title_str << "' (Process: '" << process_name_str << "')"
                       << " | Title Score: " << title_score << " | Process Score: " << process_score
                       << " | Final: " << final_score << std::endl;
 #endif
 
-            // Use a threshold for quality results
-            if (final_score > 60) {
+            if (final_score > 50) {
                 WindowInfo info = window;
                 info.score = final_score;
                 m_filteredWindows.push_back(info);
@@ -893,160 +872,36 @@ void TabSwitcher::UnregisterThumbnail() {
     }
 }
 
-// Improved fuzzy matching scoring methods
-
-double TabSwitcher::CalculateFuzzyScore(const std::wstring& search, const std::wstring& target) {
-    // Simple Levenshtein distance-based ratio expressed as percentage
-    const size_t m = search.size();
-    const size_t n = target.size();
-    if (m == 0) return n == 0 ? 100.0 : 0.0;
-    if (n == 0) return 0.0;
-
-    std::vector<size_t> prev(n + 1), curr(n + 1);
-    std::iota(prev.begin(), prev.end(), 0);
-    for (size_t i = 0; i < m; ++i) {
-        curr[0] = i + 1;
-        for (size_t j = 0; j < n; ++j) {
-            size_t cost = search[i] == target[j] ? 0 : 1;
-            curr[j + 1] = std::min({ prev[j + 1] + 1, curr[j] + 1, prev[j] + cost });
-        }
-        std::swap(prev, curr);
+// Bitap/Shift-And search allowing a small number of errors
+bool TabSwitcher::BitapSearch(const std::wstring& text, const std::wstring& pattern, int maxErrors) {
+    if (pattern.empty()) return true;
+    if (pattern.size() > 63) {
+        return text.find(pattern) != std::wstring::npos;
     }
 
-    double dist = static_cast<double>(prev[n]);
-    double maxLen = static_cast<double>(std::max(m, n));
-    return (1.0 - dist / maxLen) * 100.0;
-}
+    std::unordered_map<wchar_t, uint64_t> mask;
+    for (size_t i = 0; i < pattern.size(); ++i) {
+        mask[pattern[i]] |= (1ULL << i);
+    }
 
-double TabSwitcher::CalculatePositionScore(const std::wstring& search, const std::wstring& target) {
-    if (search.empty() || target.empty()) return 0.0;
-    
-    double score = 0.0;
-    size_t search_len = search.length();
-    size_t target_len = target.length();
-    
-    // Find each character of search in target and calculate position bonus
-    size_t last_found_pos = 0;
-    double position_penalty = 0.0;
-    
-    for (size_t i = 0; i < search_len; ++i) {
-        size_t found_pos = target.find(search[i], last_found_pos);
-        if (found_pos != std::wstring::npos) {
-            // Earlier positions get higher scores
-            double position_score = 1.0 - (static_cast<double>(found_pos) / target_len);
-            score += position_score;
-            last_found_pos = found_pos + 1;
-        } else {
-            // Character not found, apply penalty
-            position_penalty += 0.2;
+    std::vector<uint64_t> R(maxErrors + 1, ~0ULL);
+    uint64_t matchMask = 1ULL << (pattern.size() - 1);
+
+    for (wchar_t c : text) {
+        uint64_t charMask = mask.count(c) ? mask[c] : 0;
+        uint64_t oldR = R[0];
+        R[0] = ((R[0] << 1) | 1ULL) & charMask;
+        for (int d = 1; d <= maxErrors; ++d) {
+            uint64_t tmp = R[d];
+            R[d] = ((R[d] << 1) | 1ULL) & charMask;
+            R[d] |= (oldR << 1) | oldR;
+            oldR = tmp;
+        }
+        if (R[maxErrors] & matchMask) {
+            return true;
         }
     }
-    
-    // Normalize score and apply penalty
-    score = (score / search_len) * 100.0;
-    score = std::max(0.0, score - (position_penalty * 100.0));
-    
-    return score;
-}
-
-double TabSwitcher::CalculatePrefixScore(const std::wstring& search, const std::wstring& target) {
-    if (search.empty() || target.empty()) return 0.0;
-    
-    double score = 0.0;
-    
-    // Check for exact prefix match
-    if (target.find(search) == 0) {
-        score = 100.0; // Perfect prefix match
-    } else {
-        // Check for word-start prefix matches
-        size_t pos = 0;
-        while ((pos = target.find(L' ', pos)) != std::wstring::npos) {
-            pos++; // Move past the space
-            if (pos < target.length()) {
-                std::wstring word_start = target.substr(pos);
-                if (word_start.find(search) == 0) {
-                    score = 80.0; // Word start match
-                    break;
-                }
-            }
-        }
-        
-        // Check for character-level prefix matching
-        if (score == 0.0) {
-            size_t matching_chars = 0;
-            size_t min_len = std::min(search.length(), target.length());
-            
-            for (size_t i = 0; i < min_len; ++i) {
-                if (search[i] == target[i]) {
-                    matching_chars++;
-                } else {
-                    break;
-                }
-            }
-            
-            if (matching_chars > 0) {
-                score = (static_cast<double>(matching_chars) / search.length()) * 60.0;
-            }
-        }
-    }
-    
-    return score;
-}
-
-double TabSwitcher::CalculateSequentialScore(const std::wstring& search, const std::wstring& target) {
-    if (search.empty() || target.empty()) return 0.0;
-    
-    double score = 0.0;
-    size_t search_len = search.length();
-    size_t target_len = target.length();
-    
-    // Find longest consecutive character sequences
-    size_t max_consecutive = 0;
-    size_t current_consecutive = 0;
-    size_t total_matches = 0;
-    
-    size_t search_idx = 0;
-    size_t target_idx = 0;
-    
-    while (search_idx < search_len && target_idx < target_len) {
-        if (search[search_idx] == target[target_idx]) {
-            current_consecutive++;
-            total_matches++;
-            search_idx++;
-            target_idx++;
-            max_consecutive = std::max(max_consecutive, current_consecutive);
-        } else {
-            current_consecutive = 0;
-            target_idx++;
-        }
-    }
-    
-    if (total_matches > 0) {
-        // Base score from match ratio
-        double match_ratio = static_cast<double>(total_matches) / search_len;
-        
-        // Bonus for consecutive characters
-        double consecutive_bonus = static_cast<double>(max_consecutive) / search_len;
-        
-        // Combined score with extra weight for consecutive matches
-        score = (match_ratio * 60.0) + (consecutive_bonus * 40.0);
-    }
-
-    return score;
-}
-
-double TabSwitcher::CalculateSubstringScore(const std::wstring& search, const std::wstring& target) {
-    if (search.empty() || target.empty()) return 0.0;
-
-    size_t pos = target.find(search);
-    if (pos != std::wstring::npos) {
-        double length_ratio = static_cast<double>(search.length()) / target.length();
-        double base_score = 80.0;
-        double bonus = length_ratio * 20.0;
-        return base_score + bonus;
-    }
-
-    return 0.0;
+    return false;
 }
 
 void TabSwitcher::StartWindowUpdater() {
