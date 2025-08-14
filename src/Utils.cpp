@@ -6,6 +6,7 @@
 #include <shellapi.h>
 #include <vector>
 #include <unordered_map>
+#include <map>
 #include <filesystem>
 
 extern std::unordered_map<DWORD, std::wstring> g_processNameCache;
