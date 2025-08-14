@@ -26,6 +26,8 @@
 #endif
 
 
+TabSwitcher* TabSwitcher::s_instance = nullptr;
+
 TabSwitcher::TabSwitcher()
     : m_hwnd(nullptr)
     , m_hThumbnail(nullptr)
@@ -38,7 +40,8 @@ TabSwitcher::TabSwitcher()
     , m_backgroundBrush(nullptr)
     , m_selectedBrush(nullptr)
     , m_stopThread(false) {
-    
+
+    s_instance = this;
     m_windowManager = std::make_unique<WindowManager>();
     RegisterWindowClass();
     StartWindowUpdater();
@@ -52,6 +55,7 @@ TabSwitcher::~TabSwitcher() {
     if (m_selectedBrush) DeleteObject(m_selectedBrush);
     if (m_hwnd) DestroyWindow(m_hwnd);
     UnregisterWindowClass();
+    s_instance = nullptr;
 }
 
 bool TabSwitcher::Create() {
@@ -107,8 +111,10 @@ void TabSwitcher::Show() {
         }
     }
 
-    // Ask the background thread to refresh immediately
-    m_updateCv.notify_one();
+    // Ask the background thread to refresh immediately if polling is active
+    if (m_useFallback) {
+        m_updateCv.notify_one();
+    }
 
     m_searchText.clear();
     FilterWindows();
@@ -909,36 +915,146 @@ bool TabSwitcher::BitapSearch(const std::wstring& text, const std::wstring& patt
 }
 
 void TabSwitcher::StartWindowUpdater() {
-    m_updateThread = std::thread([this] {
-        UpdateWindowsInBackground();
-    });
+    {
+        std::lock_guard<std::mutex> lock(m_windowMutex);
+        m_windows = m_windowManager->GetAllWindows();
+    }
+
+    if (!RegisterEventHooks()) {
+        m_useFallback = true;
+        m_updateThread = std::thread([this] { UpdateWindowsInBackground(); });
+    }
 }
 
 void TabSwitcher::StopWindowUpdater() {
-    m_stopThread = true;
-    m_updateCv.notify_all();
-    if (m_updateThread.joinable()) {
-        m_updateThread.join();
+    if (m_useFallback) {
+        m_stopThread = true;
+        m_updateCv.notify_all();
+        if (m_updateThread.joinable()) {
+            m_updateThread.join();
+        }
+    } else {
+        UnregisterEventHooks();
     }
 }
 
 void TabSwitcher::UpdateWindowsInBackground() {
     std::unique_lock<std::mutex> cvLock(m_updateCvMutex);
+    size_t lastCount = 0;
     while (!m_stopThread) {
         cvLock.unlock();
         auto newWindows = m_windowManager->GetAllWindows();
-        {
-            std::lock_guard<std::mutex> lock(m_windowMutex);
-            m_windows = std::move(newWindows);
-        }
+        if (newWindows.size() != lastCount) {
+            {
+                std::lock_guard<std::mutex> lock(m_windowMutex);
+                m_windows = std::move(newWindows);
+                lastCount = m_windows.size();
+            }
 
-        // If the window is visible, refresh the filtered list
-        if (m_isVisible.load()) {
-            PostMessage(m_hwnd, WM_APP + 2, 0, 0); // Custom message to refresh
+            // If the window is visible, refresh the filtered list
+            if (m_isVisible.load()) {
+                PostMessage(m_hwnd, WM_APP + 2, 0, 0); // Custom message to refresh
+            }
         }
 
         cvLock.lock();
-        m_updateCv.wait_for(cvLock, std::chrono::seconds(2));
+        m_updateCv.wait_for(cvLock, std::chrono::seconds(5));
+    }
+}
+
+bool TabSwitcher::RegisterEventHooks() {
+    DWORD flags = WINEVENT_OUTOFCONTEXT | WINEVENT_SKIPOWNPROCESS;
+    m_hookCreate = SetWinEventHook(EVENT_OBJECT_CREATE, EVENT_OBJECT_CREATE, nullptr, WinEventProc, 0, 0, flags);
+    m_hookDestroy = SetWinEventHook(EVENT_OBJECT_DESTROY, EVENT_OBJECT_DESTROY, nullptr, WinEventProc, 0, 0, flags);
+    m_hookForeground = SetWinEventHook(EVENT_SYSTEM_FOREGROUND, EVENT_SYSTEM_FOREGROUND, nullptr, WinEventProc, 0, 0, flags);
+
+    if (m_hookCreate && m_hookDestroy && m_hookForeground) {
+        return true;
+    }
+
+    UnregisterEventHooks();
+    return false;
+}
+
+void TabSwitcher::UnregisterEventHooks() {
+    if (m_hookCreate) {
+        UnhookWinEvent(m_hookCreate);
+        m_hookCreate = nullptr;
+    }
+    if (m_hookDestroy) {
+        UnhookWinEvent(m_hookDestroy);
+        m_hookDestroy = nullptr;
+    }
+    if (m_hookForeground) {
+        UnhookWinEvent(m_hookForeground);
+        m_hookForeground = nullptr;
+    }
+}
+
+void CALLBACK TabSwitcher::WinEventProc(HWINEVENTHOOK, DWORD event, HWND hwnd, LONG idObject, LONG idChild,
+                                       DWORD, DWORD) {
+    if (s_instance) {
+        s_instance->HandleWinEvent(event, hwnd, idObject, idChild);
+    }
+}
+
+void TabSwitcher::HandleWinEvent(DWORD event, HWND hwnd, LONG idObject, LONG idChild) {
+    if (idObject != OBJID_WINDOW || hwnd == nullptr) {
+        return;
+    }
+
+    if (!m_windowManager->ShouldIncludeWindow(hwnd)) {
+        if (event == EVENT_OBJECT_DESTROY) {
+            std::lock_guard<std::mutex> lock(m_windowMutex);
+            m_windows.erase(std::remove_if(m_windows.begin(), m_windows.end(),
+                                           [hwnd](const WindowInfo& w) { return w.hwnd == hwnd; }),
+                            m_windows.end());
+        }
+        return;
+    }
+
+    switch (event) {
+    case EVENT_OBJECT_CREATE: {
+        WindowInfo info = m_windowManager->CreateWindowInfo(hwnd);
+        {
+            std::lock_guard<std::mutex> lock(m_windowMutex);
+            auto it = std::find_if(m_windows.begin(), m_windows.end(),
+                                   [hwnd](const WindowInfo& w) { return w.hwnd == hwnd; });
+            if (it == m_windows.end()) {
+                m_windows.push_back(info);
+            } else {
+                *it = info;
+            }
+        }
+        break;
+    }
+    case EVENT_OBJECT_DESTROY: {
+        std::lock_guard<std::mutex> lock(m_windowMutex);
+        m_windows.erase(std::remove_if(m_windows.begin(), m_windows.end(),
+                                       [hwnd](const WindowInfo& w) { return w.hwnd == hwnd; }),
+                        m_windows.end());
+        break;
+    }
+    case EVENT_SYSTEM_FOREGROUND: {
+        WindowInfo info = m_windowManager->CreateWindowInfo(hwnd);
+        {
+            std::lock_guard<std::mutex> lock(m_windowMutex);
+            auto it = std::find_if(m_windows.begin(), m_windows.end(),
+                                   [hwnd](const WindowInfo& w) { return w.hwnd == hwnd; });
+            if (it == m_windows.end()) {
+                m_windows.push_back(info);
+            } else {
+                *it = info;
+            }
+        }
+        break;
+    }
+    default:
+        break;
+    }
+
+    if (m_isVisible.load()) {
+        PostMessage(m_hwnd, WM_APP + 2, 0, 0);
     }
 }
  

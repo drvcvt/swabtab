@@ -15,10 +15,14 @@ public:
     // Window operations
     bool ActivateWindow(HWND hwnd);
     bool IsWindowValid(HWND hwnd);
-    
+
     // Refresh window list
     void RefreshWindows();
-    
+
+    // Expose helper methods for single-window updates
+    WindowInfo CreateWindowInfo(HWND hwnd);
+    bool ShouldIncludeWindow(HWND hwnd);
+
 private:
     std::vector<WindowInfo> m_windows;
     
@@ -26,8 +30,6 @@ private:
     static BOOL CALLBACK EnumWindowsProc(HWND hwnd, LPARAM lParam);
     
     // Helper methods
-    WindowInfo CreateWindowInfo(HWND hwnd);
-    bool ShouldIncludeWindow(HWND hwnd);
     std::wstring GetWindowTitle(HWND hwnd);
     std::wstring GetWindowClassName(HWND hwnd);
-}; 
+};

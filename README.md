@@ -37,8 +37,21 @@ To build the project, you need to have CMake and a C++ compiler (like MSVC from 
 5.  Press `Enter` to switch to the selected window.
 6.  Press `Esc` to hide the switcher without changing the window.
 
+## Window Event Hook
+
+The switcher keeps its window list updated using a WinEvent hook. During startup
+`StartWindowUpdater` registers a hook with `SetWinEventHook` for
+`EVENT_OBJECT_CREATE`, `EVENT_OBJECT_DESTROY` and `EVENT_SYSTEM_FOREGROUND`.
+Each event updates only the affected window entry.  When the application exits
+`StopWindowUpdater` automatically unregisters the hook.  If hook registration
+fails the switcher falls back to a slower polling mode.
+
 ## Changes Made
 
 - **Fixed Keyboard Input:** Repaired the faulty keyboard input handling that prevented the search functionality from working correctly. The application now properly processes keystrokes for searching and navigation.
 - **Changed Hotkey:** The hotkey to activate the switcher has been set to `RSHIFT`.
-- **Improved Stability:** Refactored the way keyboard events are passed from the global hook to the application window, preventing crashes and undefined behavior related to invalid memory access. 
+- **Improved Stability:** Refactored the way keyboard events are passed from the global hook to the application window, preventing crashes and undefined behavior related to invalid memory access.
+- **WinEvent Hook:** Window list updates now rely on a `SetWinEventHook` that tracks
+  window creation, destruction and foreground changes. The hook is registered at
+  startup and unhooked automatically on shutdown, with a polling fallback if the
+  registration fails.
