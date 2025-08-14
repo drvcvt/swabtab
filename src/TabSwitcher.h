@@ -42,6 +42,11 @@ private:
     void StartWindowUpdater();
     void StopWindowUpdater();
     void UpdateWindowsInBackground();
+    bool RegisterEventHooks();
+    void UnregisterEventHooks();
+    static void CALLBACK WinEventProc(HWINEVENTHOOK hWinEventHook, DWORD event, HWND hwnd,
+                                      LONG idObject, LONG idChild, DWORD dwEventThread, DWORD dwmsEventTime);
+    void HandleWinEvent(DWORD event, HWND hwnd, LONG idObject, LONG idChild);
 
     // Lightweight fuzzy match using Bitap/Shift-And
     bool BitapSearch(const std::wstring& text, const std::wstring& pattern, int maxErrors = 1);
@@ -63,6 +68,11 @@ private:
     std::condition_variable m_updateCv;
     std::mutex m_updateCvMutex;
     std::atomic<bool> m_stopThread;
+    bool m_useFallback{false};
+    HWINEVENTHOOK m_hookCreate{nullptr};
+    HWINEVENTHOOK m_hookDestroy{nullptr};
+    HWINEVENTHOOK m_hookForeground{nullptr};
+    static TabSwitcher* s_instance;
     
     // UI state
     int m_selectedIndex;
