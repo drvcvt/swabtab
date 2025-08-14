@@ -16,6 +16,7 @@ constexpr UINT WM_APP_KEYDOWN = WM_APP + 1;
 #include <thread>
 #include <mutex>
 #include <atomic>
+#include <condition_variable>
 
 class TabSwitcher {
 public:
@@ -59,6 +60,8 @@ private:
     // Threading for window updates
     std::thread m_updateThread;
     std::mutex m_windowMutex;
+    std::condition_variable m_updateCv;
+    std::mutex m_updateCvMutex;
     std::atomic<bool> m_stopThread;
     
     // UI state

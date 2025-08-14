@@ -99,12 +99,16 @@ bool TabSwitcher::Create() {
 void TabSwitcher::Show() {
     if (m_isVisible.load()) return;
 
-    // Update the window list before showing the UI
+    // Use the existing window list; if it's empty, populate it once
     {
         std::lock_guard<std::mutex> lock(m_windowMutex);
-        m_windowManager->RefreshWindows();
-        m_windows = m_windowManager->GetAllWindows();
+        if (m_windows.empty()) {
+            m_windows = m_windowManager->GetAllWindows();
+        }
     }
+
+    // Ask the background thread to refresh immediately
+    m_updateCv.notify_one();
 
     m_searchText.clear();
     FilterWindows();
@@ -912,13 +916,16 @@ void TabSwitcher::StartWindowUpdater() {
 
 void TabSwitcher::StopWindowUpdater() {
     m_stopThread = true;
+    m_updateCv.notify_all();
     if (m_updateThread.joinable()) {
         m_updateThread.join();
     }
 }
 
 void TabSwitcher::UpdateWindowsInBackground() {
+    std::unique_lock<std::mutex> cvLock(m_updateCvMutex);
     while (!m_stopThread) {
+        cvLock.unlock();
         auto newWindows = m_windowManager->GetAllWindows();
         {
             std::lock_guard<std::mutex> lock(m_windowMutex);
@@ -930,7 +937,8 @@ void TabSwitcher::UpdateWindowsInBackground() {
             PostMessage(m_hwnd, WM_APP + 2, 0, 0); // Custom message to refresh
         }
 
-        std::this_thread::sleep_for(std::chrono::seconds(2));
+        cvLock.lock();
+        m_updateCv.wait_for(cvLock, std::chrono::seconds(2));
     }
 }
  
