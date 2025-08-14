@@ -14,6 +14,8 @@ struct WindowInfo {
     std::wstring title;
     std::wstring className;
     std::wstring processName;
+    std::wstring titleLower;
+    std::wstring processLower;
     DWORD processId;
     bool isVisible;
     bool isMinimized;
@@ -34,7 +36,8 @@ struct WindowInfo {
 
     WindowInfo(const WindowInfo& other)
         : hwnd(other.hwnd), title(other.title), className(other.className),
-          processName(other.processName), processId(other.processId),
+          processName(other.processName), titleLower(other.titleLower),
+          processLower(other.processLower), processId(other.processId),
           isVisible(other.isVisible), isMinimized(other.isMinimized),
           icon(nullptr), destroyIcon(other.destroyIcon),
           score(other.score) {
@@ -53,6 +56,8 @@ struct WindowInfo {
             title = other.title;
             className = other.className;
             processName = other.processName;
+            titleLower = other.titleLower;
+            processLower = other.processLower;
             processId = other.processId;
             isVisible = other.isVisible;
             isMinimized = other.isMinimized;
@@ -72,6 +77,8 @@ struct WindowInfo {
         : hwnd(other.hwnd), title(std::move(other.title)),
           className(std::move(other.className)),
           processName(std::move(other.processName)),
+          titleLower(std::move(other.titleLower)),
+          processLower(std::move(other.processLower)),
           processId(other.processId), isVisible(other.isVisible),
           isMinimized(other.isMinimized), icon(other.icon),
           destroyIcon(other.destroyIcon), score(other.score) {
@@ -89,6 +96,8 @@ struct WindowInfo {
             title = std::move(other.title);
             className = std::move(other.className);
             processName = std::move(other.processName);
+            titleLower = std::move(other.titleLower);
+            processLower = std::move(other.processLower);
             processId = other.processId;
             isVisible = other.isVisible;
             isMinimized = other.isMinimized;
