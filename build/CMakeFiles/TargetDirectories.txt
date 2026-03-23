@@ -1,3 +1,0 @@
-C:/Users/qkeu50/Documents/cpp/swabtab/build/CMakeFiles/TabSwitcher.dir
-C:/Users/qkeu50/Documents/cpp/swabtab/build/CMakeFiles/ALL_BUILD.dir
-C:/Users/qkeu50/Documents/cpp/swabtab/build/CMakeFiles/ZERO_CHECK.dir
